@@ -127,6 +127,7 @@ public class SeparationManager : MonoBehaviour
             merged.originBackgroundObject.SetActive(true);
 
         merged.gameObject.SetActive(false);
+        GameManager.Instance?.RefreshCurrentColorFromMergedBlocks();
 
         if (merged.originBlockPrefab != null)
         {

@@ -188,6 +188,19 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[GameManager] 색상 갱신: {currentColor}");
     }
 
+    public void RefreshCurrentColorFromMergedBlocks()
+    {
+        currentColor = "Black";
+
+        foreach (BlockMerged mergedBlock in FindObjectsOfType<BlockMerged>())
+        {
+            if (mergedBlock == null || !mergedBlock.isActiveAndEnabled) continue;
+            UpdateCurrentColor(mergedBlock.colorName);
+        }
+
+        Debug.Log($"[GameManager] 분리 후 색상 갱신: {currentColor}");
+    }
+
     public void RestoreColor(string colorToRestore)
     {
         currentColor = colorToRestore;
