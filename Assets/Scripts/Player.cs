@@ -13,6 +13,9 @@ public class Player : MonoBehaviour
 {
 
     private bool isMoving = false;
+    /// <summary>
+    /// 입력: 없음. 출력: bool. 역할: 지정한 조건 또는 현재 상태를 판정합니다.
+    /// </summary>
     public bool IsMovingStatus() => isMoving;
     private Vector3 targetPosition;
 
@@ -30,11 +33,17 @@ public class Player : MonoBehaviour
     [SerializeField] private float inputHoldDelay = 0.3f;
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 시작 단계에서 런타임 상태와 참조를 초기화합니다.
+    /// </summary>
     private void Start()
     {
         transform.position = initialPosition.position;
         targetPosition = transform.position;
     }
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 매 프레임 입력과 화면 또는 게임 상태를 갱신합니다.
+    /// </summary>
     private void Update()
     {
         if (IsMovingStatus()) return;
@@ -45,6 +54,9 @@ public class Player : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 이동 또는 이동 완료 후속 처리를 수행합니다.
+    /// </summary>
     private void Move()
     {
 
@@ -77,6 +89,9 @@ public class Player : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: position. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private void TryMoveToColorPosition(Vector3 position)
     {
         var infoMove = GridQueryManager.Instance.GetInfoMoveToColorPosition(position);
@@ -88,6 +103,9 @@ public class Player : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: blockPosition, input. 출력: 코루틴 완료. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private IEnumerator HandleBlockPush(Vector3 blockPosition, Vector3 input)
     {
         Collider2D blockCollider = GridQueryManager.Instance.GetColliderAt(blockPosition, GridQueryManager.Instance.colorBlockLayer);
@@ -112,6 +130,9 @@ public class Player : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: newPosition. 출력: 코루틴 완료. 역할: 이동 또는 이동 완료 후속 처리를 수행합니다.
+    /// </summary>
     private IEnumerator MoveToPosition(Vector3 newPosition)
     {
         targetPosition = newPosition;
@@ -120,6 +141,9 @@ public class Player : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: newPosition. 출력: 코루틴 완료. 역할: 이동 또는 이동 완료 후속 처리를 수행합니다.
+    /// </summary>
     private IEnumerator MoveToPositionAndAdvanceTurn(Vector3 newPosition)
     {
         isMoving = true;
@@ -129,6 +153,9 @@ public class Player : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: Vector3. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     private Vector3 GetInputDirection()
     {
         Vector3 input = Vector3.zero;
@@ -166,9 +193,15 @@ public class Player : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: pos. 출력: 없음. 역할: 저장된 상태 또는 지정 상태로 값을 복원합니다.
+    /// </summary>
     public void ResetTargetPosition(Vector3 pos) => targetPosition = pos;
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void EndStage()
     {
         GameObject obj = Instantiate(clearUIPrefab);

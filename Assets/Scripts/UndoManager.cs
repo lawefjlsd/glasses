@@ -44,12 +44,18 @@ public class UndoManager : MonoBehaviour
     private bool isUndoAnimation = false;
     public bool IsUndoRunning => isUndoAnimation;
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 초기화 단계에서 싱글턴 또는 필수 참조를 준비합니다.
+    /// </summary>
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 시작 단계에서 런타임 상태와 참조를 초기화합니다.
+    /// </summary>
     private void Start()
     {
         player = FindObjectOfType<Player>();
@@ -58,6 +64,9 @@ public class UndoManager : MonoBehaviour
         foreach (var bg in FindObjectsOfType<BlockBackground>(true)) registryObjects.Add(bg.gameObject);
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 매 프레임 입력과 화면 또는 게임 상태를 갱신합니다.
+    /// </summary>
     private void Update()
     {
         if (player != null && player.IsMovingStatus()) return;
@@ -71,6 +80,9 @@ public class UndoManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private void ExecuteUndo()
     {
         if (undoStack.Count == 0)
@@ -85,6 +97,9 @@ public class UndoManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: previousTurn. 출력: 코루틴 완료. 역할: 저장된 이전 턴으로 오브젝트와 색상을 복원하는 애니메이션을 실행합니다.
+    /// </summary>
     private IEnumerator AnimateUndo(TurnData previousTurn)
     {
         isUndoAnimation = true;
@@ -108,6 +123,9 @@ public class UndoManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: previousTurn, moveCoroutines. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private void PrepareUndoMovement(TurnData previousTurn, List<Coroutine> moveCoroutines)
     {
         player.ResetTargetPosition(previousTurn.playerPosition);
@@ -125,12 +143,18 @@ public class UndoManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 입력: moveCoroutines. 출력: 코루틴 완료. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private IEnumerator ExecuteAllMovementsSimultaneously(List<Coroutine> moveCoroutines)
     {
         foreach (var coroutine in moveCoroutines) yield return coroutine;
     }
 
 
+    /// <summary>
+    /// 입력: previousTurn. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private void FinalizeObjectsState(TurnData previousTurn)
     {
         foreach (var state in previousTurn.savedState)
@@ -142,6 +166,9 @@ public class UndoManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: previousTurn. 출력: 없음. 역할: Undo 상태 복원 절차를 처리합니다.
+    /// </summary>
     private void UndoMerge(TurnData previousTurn)
     {
         foreach (var state in previousTurn.savedState)
@@ -161,6 +188,9 @@ public class UndoManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: previousTurn. 출력: 없음. 역할: Undo 상태 복원 절차를 처리합니다.
+    /// </summary>
     private void UndoSeparate(TurnData previousTurn)
     {
         foreach (var state in previousTurn.savedState)
@@ -186,6 +216,9 @@ public class UndoManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: mergedObject, mergedScript. 출력: 없음. 역할: 런타임 데이터를 관리 목록에 등록합니다.
+    /// </summary>
     public void RegisterNewlyMergedObject(GameObject mergedObject, BlockMerged mergedScript)
     {
         if (undoStack.Count == 0) return;
@@ -203,12 +236,18 @@ public class UndoManager : MonoBehaviour
         });
     }
 
+    /// <summary>
+    /// 입력: newObject. 출력: 없음. 역할: 런타임 데이터를 관리 목록에 등록합니다.
+    /// </summary>
     public void RegisterDynamicObject(GameObject newObject)
     {
         if (!registryObjects.Contains(newObject)) registryObjects.Add(newObject);
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void SaveCurrentTurn()
     {
 
@@ -245,6 +284,9 @@ public class UndoManager : MonoBehaviour
         undoStack.Push(turn);
     }
 
+    /// <summary>
+    /// 입력: turn, obj, type, leftTurns, merged, pendingSeparationPath. 출력: 없음. 역할: 관리 데이터에 항목을 추가합니다.
+    /// </summary>
     private void AddState(
         TurnData turn,
         GameObject obj,
@@ -270,6 +312,9 @@ public class UndoManager : MonoBehaviour
         return;
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void ClearStack()
     {
         undoStack.Clear();

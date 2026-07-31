@@ -23,8 +23,14 @@ public class BlockMerged : MonoBehaviour
     private bool isSeparating = false;
     public bool IsSeparating => isSeparating;
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void BeginSeparation() => isSeparating = true;
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void EndSeparation() => isSeparating = false;
 
     void Start()
@@ -34,6 +40,9 @@ public class BlockMerged : MonoBehaviour
         if (GetComponent<RemainingTurnDisplay>() == null)
             gameObject.AddComponent<RemainingTurnDisplay>();
     }
+    /// <summary>
+    /// 입력: blockPos, blockPrefab, backgroundObject, durationTurns. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void InitializeTimer(Vector3 blockPos, GameObject blockPrefab, GameObject backgroundObject, int durationTurns)
     {
         originBlockPosition = blockPos;

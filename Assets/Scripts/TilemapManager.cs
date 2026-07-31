@@ -7,6 +7,9 @@ public class TilemapManager : MonoBehaviour
 {
     public Tilemap[] tilemaps;
 
+    /// <summary>
+    /// 입력: name. 출력: Tilemap. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public Tilemap GetTilemapByName(string name)
     {
         foreach (Tilemap tilemap in tilemaps)
@@ -20,6 +23,9 @@ public class TilemapManager : MonoBehaviour
         return null;
     }
 
+    /// <summary>
+    /// 입력: position. 출력: Tilemap. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public Tilemap GetTilemapAtPosition(Vector3 position)
     {
         foreach (Tilemap tilemap in tilemaps)

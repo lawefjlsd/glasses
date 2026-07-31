@@ -14,6 +14,9 @@ public class BlockManager : MonoBehaviour
     [Header("Settings")]
     public float blockSpeed = 8f;
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 초기화 단계에서 싱글턴 또는 필수 참조를 준비합니다.
+    /// </summary>
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -21,6 +24,9 @@ public class BlockManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: position, input, path, isBeforeBlock. 출력: bool. 역할: 지정 방향으로 블록 연쇄 밀기가 가능한지와 경로를 계산합니다.
+    /// </summary>
     public bool CanPushBlockContinuously(Vector3 position, Vector3 input ,List<Vector3> path, bool isBeforeBlock = false)
     {
         Vector3 nextPosition = position + input;
@@ -47,6 +53,9 @@ public class BlockManager : MonoBehaviour
                 return false;
         }
     }
+    /// <summary>
+    /// 입력: currentPos, input. 출력: 코루틴 완료. 역할: 이동 또는 이동 완료 후속 처리를 수행합니다.
+    /// </summary>
     private IEnumerator MoveOrMergeAt(Vector3 currentPos, Vector3 input)
     {
         Collider2D blockCollider = GridQueryManager.Instance.GetColliderAt(currentPos, GridQueryManager.Instance.colorBlockLayer);
@@ -62,6 +71,9 @@ public class BlockManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: startPosition, input, path. 출력: 코루틴 완료. 역할: 계산된 경로의 블록들을 순서대로 밀어냅니다.
+    /// </summary>
     public IEnumerator ExecutePushChain(Vector3 startPosition, Vector3 input, List<Vector3> path)
     {
         List<Coroutine> moves = new List<Coroutine>();
@@ -81,6 +93,9 @@ public class BlockManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 코루틴 완료. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public IEnumerator ResolveMergesOnBoard()
     {
         Block[] blocks = FindObjectsOfType<Block>();
@@ -102,6 +117,9 @@ public class BlockManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: blockCollider, blockTargetPosition. 출력: 코루틴 완료. 역할: 블록과 배경의 병합 가능 여부를 검사하고 병합을 수행합니다.
+    /// </summary>
     private IEnumerator TryMergeBlock(Collider2D blockCollider, Vector3 blockTargetPosition)
     {
         Block blockScript = blockCollider.GetComponent<Block>();

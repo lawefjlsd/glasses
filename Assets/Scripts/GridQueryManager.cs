@@ -21,18 +21,27 @@ public class GridQueryManager : MonoBehaviour
 
     private TilemapManager tilemapManager;
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 초기화 단계에서 싱글턴 또는 필수 참조를 준비합니다.
+    /// </summary>
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 시작 단계에서 런타임 상태와 참조를 초기화합니다.
+    /// </summary>
     private void Start()
     {
         tilemapManager = FindObjectOfType<TilemapManager>();
     }
 
 
+    /// <summary>
+    /// 입력: position, type, tilemap. 출력: string. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public string GetColorNameAtPosition(Vector3 position, ObjectType type, Tilemap tilemap)
     {
         switch (type)
@@ -49,6 +58,9 @@ public class GridQueryManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: position. 출력: ObjectType. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public ObjectType GetObjectTypeAt(Vector3 position)
     {
         BlockMerged[] mergedBlocks = FindObjectsOfType<BlockMerged>();
@@ -82,6 +94,9 @@ public class GridQueryManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: position, tilemap. 출력: ObjectType. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public ObjectType GetGroundTypeAt(Vector3 position, Tilemap tilemap)
     {
         if (GetColliderAt(position, colorBlockBackgroundLayer) != null) return ObjectType.ColorBlockBackground;
@@ -95,10 +110,16 @@ public class GridQueryManager : MonoBehaviour
 
         return ObjectType.Ground;
     }
+    /// <summary>
+    /// 입력: position, layer. 출력: Collider2D. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public Collider2D GetColliderAt(Vector3 position, LayerMask layer)
     {
         return Physics2D.OverlapPoint(position, layer);
     }
+    /// <summary>
+    /// 입력: 없음. 출력: bool. 역할: 지정한 조건 또는 현재 상태를 판정합니다.
+    /// </summary>
     public bool CheckIfAnyBlockIsSeparating()
     {
         BlockMerged[] mergedBlocks = FindObjectsOfType<BlockMerged>();
@@ -110,6 +131,9 @@ public class GridQueryManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: position. 출력: Tuple<bool, string, bool>. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public Tuple<bool, string, bool> GetInfoMoveToColorPosition(Vector3 position)
     {
         Tilemap tilemap = tilemapManager.GetTilemapAtPosition(position);

@@ -12,6 +12,9 @@ public class SeparationManager : MonoBehaviour
     [Header("Separation Settings")]
     public float separateSpeed = 8f;
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 초기화 단계에서 싱글턴 또는 필수 참조를 준비합니다.
+    /// </summary>
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -19,6 +22,9 @@ public class SeparationManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 코루틴 완료. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public IEnumerator TickMergedBlocksTurn()
     {
         BlockMerged[] mergedBlocks = FindObjectsOfType<BlockMerged>();
@@ -61,6 +67,9 @@ public class SeparationManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: merged. 출력: bool. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private bool PrepareSeparationPath(BlockMerged merged)
     {
         merged.pendingSeparationPath.Clear();
@@ -87,6 +96,9 @@ public class SeparationManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: merged. 출력: 코루틴 완료. 역할: 병합 블록 분리·원본 이동·색상 갱신을 처리합니다.
+    /// </summary>
     private IEnumerator ProcessSeparation(BlockMerged merged)
     {
         Vector3 separationOffset = merged.originBlockPosition - merged.transform.position;

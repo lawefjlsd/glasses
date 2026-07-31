@@ -9,6 +9,9 @@ public class RemainingTurnDisplay : MonoBehaviour
     private BlockMerged mergedBlock;
     private TextMeshPro remainingTurnLabel;
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 초기화 단계에서 싱글턴 또는 필수 참조를 준비합니다.
+    /// </summary>
     private void Awake()
     {
         mergedBlock = GetComponent<BlockMerged>();
@@ -25,6 +28,9 @@ public class RemainingTurnDisplay : MonoBehaviour
         remainingTurnLabel.sortingOrder = 10;
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 프레임의 모든 이동이 끝난 뒤 표시 정보를 갱신합니다.
+    /// </summary>
     private void LateUpdate()
     {
         if (mergedBlock == null) return;

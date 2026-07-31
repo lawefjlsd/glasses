@@ -15,6 +15,9 @@ public class GameUI : MonoBehaviour
     private bool areBlocksTransparent;
     private readonly Dictionary<SpriteRenderer, float> originalBlockAlphas = new Dictionary<SpriteRenderer, float>();
 
+    /// <summary>
+    /// 입력: manager. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void Initialize(GameManager manager)
     {
         gameManager = manager;
@@ -34,6 +37,9 @@ public class GameUI : MonoBehaviour
         gameOverPanel.SetActive(false);
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 매 프레임 입력과 화면 또는 게임 상태를 갱신합니다.
+    /// </summary>
     private void Update()
     {
         if (currentColorLabel != null)
@@ -43,11 +49,17 @@ public class GameUI : MonoBehaviour
             ApplyBlockTransparency();
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 지정한 UI 또는 정보를 화면에 표시합니다.
+    /// </summary>
     public void ShowGameOver()
     {
         gameOverPanel.SetActive(true);
     }
 
+    /// <summary>
+    /// 입력: parent. 출력: GameObject. 역할: 런타임 UI 또는 오브젝트를 생성합니다.
+    /// </summary>
     private GameObject CreatePanel(Transform parent)
     {
         GameObject panel = new GameObject("GameOverPanel", typeof(RectTransform), typeof(Image));
@@ -67,6 +79,9 @@ public class GameUI : MonoBehaviour
         return panel;
     }
 
+    /// <summary>
+    /// 입력: parent, label, anchor, pivot, position. 출력: 없음. 역할: 런타임 UI 또는 오브젝트를 생성합니다.
+    /// </summary>
     private void CreateRestartButton(Transform parent, string label, Vector2 anchor, Vector2 pivot, Vector2 position)
     {
         GameObject buttonObject = new GameObject("RestartButton", typeof(RectTransform), typeof(Image), typeof(Button));
@@ -89,6 +104,9 @@ public class GameUI : MonoBehaviour
         CreateLabel(buttonObject.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, 24f);
     }
 
+    /// <summary>
+    /// 입력: parent. 출력: 없음. 역할: 런타임 UI 또는 오브젝트를 생성합니다.
+    /// </summary>
     private void CreateTransparencyButton(Transform parent)
     {
         GameObject buttonObject = new GameObject("TransparencyButton", typeof(RectTransform), typeof(Image), typeof(Button));
@@ -111,6 +129,9 @@ public class GameUI : MonoBehaviour
         transparencyButtonLabel = CreateLabel(buttonObject.transform, "Block Alpha: Normal", new Vector2(0.5f, 0.5f), Vector2.zero, 20f);
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private void ToggleBlockTransparency()
     {
         areBlocksTransparent = !areBlocksTransparent;
@@ -118,6 +139,9 @@ public class GameUI : MonoBehaviour
         transparencyButtonLabel.text = areBlocksTransparent ? "Block Alpha: Transparent" : "Block Alpha: Normal";
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private void ApplyBlockTransparency()
     {
         foreach (Block block in FindObjectsOfType<Block>(true))
@@ -127,6 +151,9 @@ public class GameUI : MonoBehaviour
             ApplyBlockTransparency(mergedBlock.gameObject);
     }
 
+    /// <summary>
+    /// 입력: blockObject. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private void ApplyBlockTransparency(GameObject blockObject)
     {
         foreach (SpriteRenderer spriteRenderer in blockObject.GetComponentsInChildren<SpriteRenderer>(true))
@@ -140,6 +167,9 @@ public class GameUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 입력: parent, text, anchor, position, fontSize. 출력: TextMeshProUGUI. 역할: 런타임 UI 또는 오브젝트를 생성합니다.
+    /// </summary>
     private TextMeshProUGUI CreateLabel(Transform parent, string text, Vector2 anchor, Vector2 position, float fontSize)
     {
         GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));

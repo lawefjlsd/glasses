@@ -31,6 +31,9 @@ public class GameManager : MonoBehaviour
     public bool IsGameOver => isGameOver;
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 초기화 단계에서 싱글턴 또는 필수 참조를 준비합니다.
+    /// </summary>
     private void Awake()
     {
         if (Instance == null)
@@ -43,6 +46,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: Unity 시작 단계에서 런타임 상태와 참조를 초기화합니다.
+    /// </summary>
     private void Start()
     {
         AddPair("Black", Tuple.Create(false, false, false));
@@ -70,6 +76,9 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[GameManager] 초기 색상 설정: {currentColor}");
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 매 프레임 입력과 화면 또는 게임 상태를 갱신합니다.
+    /// </summary>
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.R))
@@ -77,6 +86,9 @@ public class GameManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: bool. 역할: 지정한 조건 또는 현재 상태를 판정합니다.
+    /// </summary>
     public bool IsLastStageOfChapter()
     {
         int chapter = GetCurrentChapter();
@@ -86,6 +98,9 @@ public class GameManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 코루틴 완료. 역할: 턴 종료 후 병합·분리·충돌 판정 순서를 실행합니다.
+    /// </summary>
     public IEnumerator OnTurnAdvanced()
     {
         if (isGameOver) yield break;
@@ -108,6 +123,9 @@ public class GameManager : MonoBehaviour
         CheckForOverlappingColorBlocks();
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: bool. 역할: 지정한 조건 또는 현재 상태를 판정합니다.
+    /// </summary>
     public bool CheckForOverlappingColorBlocks()
     {
         if (isGameOver || GridQueryManager.Instance == null) return isGameOver;
@@ -137,11 +155,17 @@ public class GameManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void RestartCurrentStage()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     private void TriggerGameOver()
     {
         if (isGameOver) return;
@@ -152,27 +176,42 @@ public class GameManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: int. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public int GetCurrentChapter()
     {
         return currentChapter;
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: int. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public int GetCurrentStage()
     {
         return currentStage;
     }
 
+    /// <summary>
+    /// 입력: colorString. 출력: Tuple<bool, bool, bool>. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public Tuple<bool, bool, bool> GetBoolValue(string colorString)
     {
         return forColorMap[colorString];
     }
 
+    /// <summary>
+    /// 입력: Tuple<bool, bool, boolValue. 출력: string. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
+    /// </summary>
     public string GetColorString(Tuple<bool, bool, bool> boolValue)
     {
         return revColorMap[boolValue];
     }
 
 
+    /// <summary>
+    /// 입력: addedColor. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void UpdateCurrentColor(string addedColor)
     {
         var colorConverter = GetBoolValue(currentColor);
@@ -188,6 +227,9 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[GameManager] 색상 갱신: {currentColor}");
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
+    /// </summary>
     public void RefreshCurrentColorFromMergedBlocks()
     {
         currentColor = "Black";
@@ -201,12 +243,18 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[GameManager] 분리 후 색상 갱신: {currentColor}");
     }
 
+    /// <summary>
+    /// 입력: colorToRestore. 출력: 없음. 역할: 저장된 상태 또는 지정 상태로 값을 복원합니다.
+    /// </summary>
     public void RestoreColor(string colorToRestore)
     {
         currentColor = colorToRestore;
         Debug.Log($"[GameManager] 색상 복원: {currentColor}");
     }
 
+    /// <summary>
+    /// 입력: blockColor, isExclusive. 출력: bool. 역할: 지정한 조건 또는 현재 상태를 판정합니다.
+    /// </summary>
     public bool IsAvailableBlock(string blockColor, bool isExclusive)
     {
         var colorConverter = GetBoolValue(currentColor);
@@ -220,6 +268,9 @@ public class GameManager : MonoBehaviour
         return isExclusive ? !isAvailable : isAvailable;
     }
 
+    /// <summary>
+    /// 입력: blockColor, acceptedColor. 출력: bool. 역할: 지정한 조건 또는 현재 상태를 판정합니다.
+    /// </summary>
     public bool CanMergeWith(string blockColor, string acceptedColor)
     {
         var acceptedConverter = GetBoolValue(acceptedColor);
@@ -232,11 +283,17 @@ public class GameManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: chapter, stage. 출력: 없음. 역할: 관리 데이터에 항목을 추가합니다.
+    /// </summary>
     private void AddStagePerChapter(int chapter, int stage)
     {
         stagesPerChapter[chapter] = stage;
     }
 
+    /// <summary>
+    /// 입력: colorString, Tuple<bool, bool, boolValue. 출력: 없음. 역할: 관리 데이터에 항목을 추가합니다.
+    /// </summary>
     private void AddPair(string colorString, Tuple<bool, bool, bool> boolValue)
     {
         forColorMap[colorString] = boolValue;
@@ -244,6 +301,9 @@ public class GameManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 다음 진행 대상 또는 씬을 불러옵니다.
+    /// </summary>
     public void LoadNextStory()
     {
         string storyName = "Story_" + currentChapter + "-" + currentStage;
@@ -262,6 +322,9 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene("StoryScene");
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 다음 진행 대상 또는 씬을 불러옵니다.
+    /// </summary>
     public void LoadNextStage()
     {
         if (IsLastStageOfChapter())

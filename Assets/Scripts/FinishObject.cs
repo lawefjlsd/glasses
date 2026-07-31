@@ -5,6 +5,9 @@ using UnityEngine;
 /// </summary>
 public class FinishObject : MonoBehaviour
 {
+    /// <summary>
+    /// 입력: collision. 출력: 없음. 역할: 플레이어의 도착을 감지해 스테이지 완료를 처리합니다.
+    /// </summary>
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Player")) collision.GetComponent<Player>().EndStage();
