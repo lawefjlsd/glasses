@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,6 +10,10 @@ public class GameUI : MonoBehaviour
 {
     private GameManager gameManager;
     private GameObject gameOverPanel;
+    private TextMeshProUGUI currentColorLabel;
+    private TextMeshProUGUI transparencyButtonLabel;
+    private bool areBlocksTransparent;
+    private readonly Dictionary<SpriteRenderer, float> originalBlockAlphas = new Dictionary<SpriteRenderer, float>();
 
     public void Initialize(GameManager manager)
     {
@@ -21,10 +26,21 @@ public class GameUI : MonoBehaviour
         gameObject.AddComponent<CanvasScaler>();
         gameObject.AddComponent<GraphicRaycaster>();
 
+        currentColorLabel = CreateLabel(transform, "Current Color: Black", new Vector2(0f, 1f), new Vector2(112f, -24f), 24f);
         CreateRestartButton(transform, "Restart", new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-24f, -24f));
+        CreateTransparencyButton(transform);
 
         gameOverPanel = CreatePanel(transform);
         gameOverPanel.SetActive(false);
+    }
+
+    private void Update()
+    {
+        if (currentColorLabel != null)
+            currentColorLabel.text = $"Current Color: {GameManager.currentColor}";
+
+        if (areBlocksTransparent)
+            ApplyBlockTransparency();
     }
 
     public void ShowGameOver()
@@ -73,7 +89,58 @@ public class GameUI : MonoBehaviour
         CreateLabel(buttonObject.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, 24f);
     }
 
-    private void CreateLabel(Transform parent, string text, Vector2 anchor, Vector2 position, float fontSize)
+    private void CreateTransparencyButton(Transform parent)
+    {
+        GameObject buttonObject = new GameObject("TransparencyButton", typeof(RectTransform), typeof(Image), typeof(Button));
+        buttonObject.transform.SetParent(parent, false);
+
+        RectTransform buttonTransform = buttonObject.GetComponent<RectTransform>();
+        buttonTransform.anchorMin = new Vector2(1f, 1f);
+        buttonTransform.anchorMax = new Vector2(1f, 1f);
+        buttonTransform.pivot = new Vector2(1f, 1f);
+        buttonTransform.anchoredPosition = new Vector2(-24f, -76f);
+        buttonTransform.sizeDelta = new Vector2(172f, 44f);
+
+        Image image = buttonObject.GetComponent<Image>();
+        image.color = new Color(0.16f, 0.16f, 0.16f, 0.95f);
+
+        Button button = buttonObject.GetComponent<Button>();
+        button.targetGraphic = image;
+        button.onClick.AddListener(ToggleBlockTransparency);
+
+        transparencyButtonLabel = CreateLabel(buttonObject.transform, "Block Alpha: Normal", new Vector2(0.5f, 0.5f), Vector2.zero, 20f);
+    }
+
+    private void ToggleBlockTransparency()
+    {
+        areBlocksTransparent = !areBlocksTransparent;
+        ApplyBlockTransparency();
+        transparencyButtonLabel.text = areBlocksTransparent ? "Block Alpha: Transparent" : "Block Alpha: Normal";
+    }
+
+    private void ApplyBlockTransparency()
+    {
+        foreach (Block block in FindObjectsOfType<Block>(true))
+            ApplyBlockTransparency(block.gameObject);
+
+        foreach (BlockMerged mergedBlock in FindObjectsOfType<BlockMerged>(true))
+            ApplyBlockTransparency(mergedBlock.gameObject);
+    }
+
+    private void ApplyBlockTransparency(GameObject blockObject)
+    {
+        foreach (SpriteRenderer spriteRenderer in blockObject.GetComponentsInChildren<SpriteRenderer>(true))
+        {
+            if (!originalBlockAlphas.ContainsKey(spriteRenderer))
+                originalBlockAlphas[spriteRenderer] = spriteRenderer.color.a;
+
+            Color color = spriteRenderer.color;
+            color.a = areBlocksTransparent ? originalBlockAlphas[spriteRenderer] * 0.35f : originalBlockAlphas[spriteRenderer];
+            spriteRenderer.color = color;
+        }
+    }
+
+    private TextMeshProUGUI CreateLabel(Transform parent, string text, Vector2 anchor, Vector2 position, float fontSize)
     {
         GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         labelObject.transform.SetParent(parent, false);
@@ -92,5 +159,6 @@ public class GameUI : MonoBehaviour
         label.alignment = TextAlignmentOptions.Center;
         label.color = Color.white;
         label.raycastTarget = false;
+        return label;
     }
 }

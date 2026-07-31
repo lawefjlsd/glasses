@@ -30,6 +30,9 @@ public class BlockMerged : MonoBehaviour
     void Start()
     {
         UndoManager.Instance.RegisterDynamicObject(this.gameObject);
+
+        if (GetComponent<RemainingTurnDisplay>() == null)
+            gameObject.AddComponent<RemainingTurnDisplay>();
     }
     public void InitializeTimer(Vector3 blockPos, GameObject blockPrefab, GameObject backgroundObject, int durationTurns)
     {
