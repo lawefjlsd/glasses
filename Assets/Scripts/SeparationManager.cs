@@ -75,6 +75,7 @@ public class SeparationManager : MonoBehaviour
 
         if (!canPush)
         {
+            merged.pendingSeparationPath = path;
             return false;
         }
 
