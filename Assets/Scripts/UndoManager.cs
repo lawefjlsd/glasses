@@ -15,6 +15,7 @@ public class ObjectState
     public bool isActive;
     public int remainingTurns;
     public bool isNewMerged;
+    public List<Vector3> pendingSeparationPath = new List<Vector3>();
 }
 
 [System.Serializable]
@@ -173,6 +174,9 @@ public class UndoManager : MonoBehaviour
                 mergedScript.remainingTurns = state.remainingTurns;
                 mergedScript.isJustCreated = false;
                 state.targetObject.transform.position = state.position;
+                mergedScript.pendingSeparationPath = state.pendingSeparationPath == null
+                    ? new List<Vector3>()
+                    : new List<Vector3>(state.pendingSeparationPath);
             }
 
 
@@ -193,7 +197,8 @@ public class UndoManager : MonoBehaviour
             position = mergedObject.transform.position,
             isActive = mergedObject.activeSelf,
             remainingTurns = mergedScript.remainingTurns,
-            isNewMerged = mergedScript.isJustCreated
+            isNewMerged = mergedScript.isJustCreated,
+            pendingSeparationPath = new List<Vector3>(mergedScript.pendingSeparationPath)
         });
     }
 
@@ -223,7 +228,7 @@ public class UndoManager : MonoBehaviour
                 GQObjectType type = GQObjectType.ColorBlockMerged;
                 int leftTurns = mergedScript.remainingTurns;
                 bool merged = mergedScript.isJustCreated;
-                AddState(turn, currentObject, type, leftTurns, merged);
+                AddState(turn, currentObject, type, leftTurns, merged, mergedScript.pendingSeparationPath);
 
                 Debug.Log($"[UndoManager] SaveCurrentTurn - isJustCreated: {merged}, mergedScript 존재: {mergedScript != null}");
             }
@@ -239,7 +244,13 @@ public class UndoManager : MonoBehaviour
         undoStack.Push(turn);
     }
 
-    private void AddState(TurnData turn, GameObject obj, GQObjectType type, int leftTurns = 0, bool merged = false)
+    private void AddState(
+        TurnData turn,
+        GameObject obj,
+        GQObjectType type,
+        int leftTurns = 0,
+        bool merged = false,
+        List<Vector3> pendingSeparationPath = null)
     {
         if (obj == null) return;
 
@@ -249,7 +260,10 @@ public class UndoManager : MonoBehaviour
             position = obj.transform.position,
             isActive = obj.activeSelf,
             remainingTurns = leftTurns,
-            isNewMerged = merged
+            isNewMerged = merged,
+            pendingSeparationPath = pendingSeparationPath == null
+                ? new List<Vector3>()
+                : new List<Vector3>(pendingSeparationPath)
         };
         turn.savedState.Add(state);
         return;
