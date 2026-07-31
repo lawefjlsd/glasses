@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using GQObjectType = GridQueryManager.ObjectType;
+
+
 /// <summary>
-/// playerÀÇ move, push, merge¸¦ ´ã´çÇÏ´Â component.
-/// move ¿©ÇÏ´Â GameManagerÀÇ currentColor
+/// í”Œë ˆì´ì–´ ì…ë ¥, ì´ë™, ë¸”ë¡ ë°€ê¸°ë¥¼ ì²˜ë¦¬í•©ë‹ˆë‹¤.
 /// </summary>
 public class Player : MonoBehaviour
 {
-    // ¦¡¦¡ State ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+
     private bool isMoving = false;
     public bool IsMovingStatus() => isMoving;
     private Vector3 targetPosition;
@@ -20,18 +21,15 @@ public class Player : MonoBehaviour
     private Vector3 lastInput = Vector3.zero;
 
 
-    // ¦¡¦¡ Inspector ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
     public Transform initialPosition;
     public GameObject clearUIPrefab;
     public float moveSpeed = 5f;
 
-    // ¦¡¦¡ Input Delay ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
 
     public float inputCooldown = 0.2f;
     [SerializeField] private float inputHoldDelay = 0.3f;
 
 
-    // ¦¡¦¡ Unity Lifecycle ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
     private void Start()
     {
         transform.position = initialPosition.position;
@@ -45,16 +43,12 @@ public class Player : MonoBehaviour
         Move();
     }
 
-    // ¦¡¦¡ Core Move Logic ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
 
-    /// <summary>
-    /// ÀÔ·ÂÀ» ¹Ş¾Æ ÇÃ·¹ÀÌ¾î¸¦ ÀÌµ¿½ÃÅ°°Å³ª, ¸·ÇôÀÖ´Â Ä­ÀÌ¸é Çª½Ã/ÀÌµ¿ ÆÇÁ¤À» ºĞ±âÇÑ´Ù.
-    /// </summary>
     private void Move()
     {
-        // input
+
         Vector3 input = GetInputDirection();
-        if (input == Vector3.zero) return; //only input is nonzero
+        if (input == Vector3.zero) return;
 
         Vector3 newPosition = targetPosition + input;
         GQObjectType typeAtNew = GridQueryManager.Instance.GetObjectTypeAt(newPosition);
@@ -75,16 +69,13 @@ public class Player : MonoBehaviour
                 break;
 
             default:
-                Debug.Log("[Player] ÀÌµ¿ ºÒ°¡: ¸·ÇôÀÖ°Å³ª ºó Ä­");
+                Debug.Log("[Player] ì´ë™ ë¶ˆê°€: ë§‰í˜€ìˆê±°ë‚˜ ë¹ˆ ì¹¸");
                 break;
         }
 
     }
 
-    /// <summary>
-    /// ºí·ÏÀÌ ¾ø´Â Ä­(Ground / Merged / Background)À¸·Î ÇÃ·¹ÀÌ¾î¸¦ ÀÌµ¿½ÃÅ²´Ù.
-    /// »ö Á¶°ÇÀ» ¸¸Á·ÇÏÁö ¸øÇÏ¸é ÀÌµ¿À» Ãë¼ÒÇÑ´Ù.
-    /// </summary>
+
     private void TryMoveToColorPosition(Vector3 position)
     {
         var infoMove = GridQueryManager.Instance.GetInfoMoveToColorPosition(position);
@@ -92,15 +83,10 @@ public class Player : MonoBehaviour
         if (infoMove.Item1)
             StartCoroutine(MoveToPosition(position));
         else
-            Debug.Log($"[Player] ÀÌµ¿ ºÒ°¡: »ö»ó ºÒÀÏÄ¡ ({infoMove.Item2})");
+            Debug.Log($"[Player] ì´ë™ ë¶ˆê°€: ìƒ‰ìƒ ë¶ˆì¼ì¹˜ ({infoMove.Item2})");
     }
-    // ¦¡¦¡ Push Logic ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
-    /// <summary>
-    /// ÇÃ·¹ÀÌ¾î°¡ ºí·ÏÀÌ ÀÖ´Â Ä­À¸·Î ÀÌµ¿À» ½ÃµµÇßÀ» ¶§ÀÇ ÁøÀÔÁ¡.
-    /// 1) ÇÃ·¹ÀÌ¾î°¡ ±× Ä­(ºí·ÏÀÌ »ç¶óÁø µÚ ¹Ù´Ú)¿¡ ¼³ ¼ö ÀÖ´ÂÁö È®ÀÎÇÏ°í
-    /// 2) °¡´ÉÇÏ¸é ½ÇÁ¦ Çª½Ã¸¦ ¼öÇàÇÑ´Ù.
-    /// ÀÌµ¿/Çª½Ã°¡ ³¡³ª±â Àü±îÁö isMovingÀ» Àá±Å¼­ Áßº¹ ÀÔ·ÂÀ» ¸·´Â´Ù.
-    /// </summary>
+
+
     private IEnumerator HandleBlockPush(Vector3 blockPosition, Vector3 input)
     {
         Collider2D blockCollider = GridQueryManager.Instance.GetColliderAt(blockPosition, GridQueryManager.Instance.colorBlockLayer);
@@ -123,11 +109,6 @@ public class Player : MonoBehaviour
     }
 
 
-    /// <summary>
-    /// ismoving = true
-    /// player -> newposition
-    /// ismoving = false
-    /// </summary>
     private IEnumerator MoveToPosition(Vector3 newPosition)
     {
         isMoving = true;
@@ -136,23 +117,18 @@ public class Player : MonoBehaviour
         yield return StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(transform, targetPosition, moveSpeed));
         isMoving = false;
 
-        //yield return new WaitForEndOfFrame();
+
         GameManager.Instance.OnTurnAdvanced();
     }
 
-    // ¦¡¦¡ Input ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
-    /// <summary>
-    /// WASD ÀÔ·ÂÀ¸·ÎºÎÅÍ ÀÌµ¿ ¹æÇâÀ» °è»êÇÑ´Ù.
-    /// Å°¸¦ Ã³À½ ´©¸¥ ¼ø°£Àº Áï½Ã ¹İÀÀÇÏ°í, °è¼Ó ´©¸£°í ÀÖÀ¸¸é inputHoldDelay ÀÌÈÄºÎÅÍ
-    /// inputCooldown °£°İÀ¸·Î ¹İº¹ ÀÔ·ÂÀ» ¹ß»ı½ÃÅ²´Ù (DAS/ARR ¹æ½Ä).
-    /// </summary>
+
     private Vector3 GetInputDirection()
     {
         Vector3 input = Vector3.zero;
-        if (Input.GetKey(KeyCode.W)) input = Vector3.up; // upward
-        else if (Input.GetKey(KeyCode.S)) input = Vector3.down; // downward
-        else if (Input.GetKey(KeyCode.A)) input = Vector3.left; // leftside
-        else if (Input.GetKey(KeyCode.D)) input = Vector3.right; // rightside
+        if (Input.GetKey(KeyCode.W)) input = Vector3.up;
+        else if (Input.GetKey(KeyCode.S)) input = Vector3.down;
+        else if (Input.GetKey(KeyCode.A)) input = Vector3.left;
+        else if (Input.GetKey(KeyCode.D)) input = Vector3.right;
 
 
         if (input == Vector3.zero)
@@ -162,7 +138,7 @@ public class Player : MonoBehaviour
             return Vector3.zero;
         }
 
-        //»õ·Î¿î ¹æÇâÅ°¸¦ ´©¸¥ ¼ø°£ : Áï½Ã 1È¸ ¹İÀÀ
+
         if (input != lastInput)
         {
             lastInput = input;
@@ -171,7 +147,7 @@ public class Player : MonoBehaviour
             return input;
         }
 
-        //°°Àº ¹æÇâÅ°¸¦ °è¼Ó ´©¸£°í ÀÖ´Â °æ¿ì : È¦µå µô·¹ÀÌ ÈÄ Äğ´Ù¿î °£°İÀ¸·Î ¹İº¹
+
         keyHoldTime += Time.deltaTime;
         if (keyHoldTime >= inputHoldDelay && Time.time - lastInputTime >= inputCooldown)
         {
@@ -182,14 +158,9 @@ public class Player : MonoBehaviour
         return Vector3.zero;
     }
 
-    // ¦¡¦¡ For Undo ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
 
-    /// <summary>
-    /// À§Ä¡ °­Á¦ ÃÊ±âÈ­(Undo)
-    /// </summary>
     public void ResetTargetPosition(Vector3 pos) => targetPosition = pos;
 
-    // ¦¡¦¡ Stage End ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
 
     public void EndStage()
     {

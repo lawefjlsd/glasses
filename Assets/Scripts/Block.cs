@@ -1,10 +1,13 @@
 using UnityEngine;
+/// <summary>
+/// ìƒ‰ìƒ ë¸”ë¡ì˜ ë³‘í•© ì •ë³´ë¥¼ ê´€ë¦¬í•©ë‹ˆë‹¤.
+/// </summary>
 public class Block : MonoBehaviour
 {
     public string colorName;
-    public GameObject mergedBlockPrefab; // °¢ ºí·ÏÀÌ ¾î¶² mergedBlockÀÌ µÉÁö ÁöÁ¤
+    public GameObject mergedBlockPrefab;
     public GameObject originBlockPrefab;
-    public bool CanMerge => mergedBlockPrefab != null; // º´ÇÕ °¡´É ¿©ºÎ
+    public bool CanMerge => mergedBlockPrefab != null;
     public GameObject GetMergedBlock() => mergedBlockPrefab;
 
 }

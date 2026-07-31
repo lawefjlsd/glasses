@@ -5,6 +5,9 @@ using UnityEngine.UI;
 using TMPro;
 
 
+/// <summary>
+/// 스토리 대사를 순서대로 표시합니다.
+/// </summary>
 public class StoryScene : MonoBehaviour
 {
     public Image background;

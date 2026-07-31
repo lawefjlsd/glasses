@@ -7,9 +7,12 @@ using System.Runtime.CompilerServices;
 using UnityEngine.SceneManagement;
 using UnityEngine;
 
+/// <summary>
+/// ê²Œì„ ìƒ‰ìƒ ìƒíƒœì™€ ìŠ¤í…Œì´ì§€ ì§„í–‰ì„ ê´€ë¦¬í•©ë‹ˆë‹¤.
+/// </summary>
 public class GameManager : MonoBehaviour
 {
-    // ¦¡¦¡ Inspector ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+
     public static GameManager Instance { get; private set; }
     public static string currentColor { get; private set; }
 
@@ -17,8 +20,8 @@ public class GameManager : MonoBehaviour
     public static StoryData currentStoryData { get; private set; }
 
     public string sceneName;
-    public int currentChapter;//'1' - 1
-    public int currentStage;//1 - '1'
+    public int currentChapter;
+    public int currentStage;
 
 
     private Dictionary<string, Tuple<bool, bool, bool>> forColorMap = new Dictionary<string, Tuple<bool, bool, bool>>();
@@ -26,9 +29,6 @@ public class GameManager : MonoBehaviour
     private Dictionary<int, int> stagesPerChapter = new Dictionary<int, int>();
 
 
-
-
-    // ¦¡¦¡ Unity Lifecycle ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
     private void Awake()
     {
         if (Instance == null)
@@ -58,13 +58,11 @@ public class GameManager : MonoBehaviour
         AddStagePerChapter(4, 10);
 
         currentColor = "Black";
-        //sceneName = "1-1";
-        //currentChapter = 1;
-        //currentStage = 1;
 
-        Debug.Log($"[GameManager] ÃÊ±â »ö»ó ¼³Á¤: {currentColor}");
+
+        Debug.Log($"[GameManager] ì´ˆê¸° ìƒ‰ìƒ ì„¤ì •: {currentColor}");
     }
-    // ¦¡¦¡ SceneManage ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+
 
     public bool IsLastStageOfChapter()
     {
@@ -74,14 +72,13 @@ public class GameManager : MonoBehaviour
         return stagesPerChapter[chapter] <= stage;
     }
 
-    // ¦¡¦¡ SeperateManage ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+
     public void OnTurnAdvanced()
     {
         if (SeparationManager.Instance != null)
             SeparationManager.Instance.TickMergedBlocksTurn();
     }
 
-    // ¦¡¦¡ Get Function ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
 
     public int GetCurrentChapter()
     {
@@ -104,7 +101,6 @@ public class GameManager : MonoBehaviour
     }
 
 
-    // ¦¡¦¡ ab/t color ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
     public void UpdateCurrentColor(string addedColor)
     {
         var colorConverter = GetBoolValue(currentColor);
@@ -117,13 +113,13 @@ public class GameManager : MonoBehaviour
         );
 
         currentColor = GetColorString(newColor);
-        Debug.Log($"[GameManager] »ö»ó °»½Å: {currentColor}");
+        Debug.Log($"[GameManager] ìƒ‰ìƒ ê°±ì‹ : {currentColor}");
     }
 
     public void RestoreColor(string colorToRestore)
     {
         currentColor = colorToRestore;
-        Debug.Log($"[GameManager] »ö»ó º¹¿ø: {currentColor}");
+        Debug.Log($"[GameManager] ìƒ‰ìƒ ë³µì›: {currentColor}");
     }
 
     public bool IsAvailableBlock(string blockColor, bool isExclusive)
@@ -151,7 +147,6 @@ public class GameManager : MonoBehaviour
     }
 
 
-    // ¦¡¦¡ Helpers ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
     private void AddStagePerChapter(int chapter, int stage)
     {
         stagesPerChapter[chapter] = stage;
@@ -163,20 +158,19 @@ public class GameManager : MonoBehaviour
         revColorMap[boolValue] = colorString;
     }
 
-    // ¦¡¦¡ Stage End ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
 
     public void LoadNextStory()
     {
         string storyName = "Story_" + currentChapter + "-" + currentStage;
-        Debug.Log($"[GameManager] ½ºÅä¸® °Ë»ö Áß: {storyName}");
+        Debug.Log($"[GameManager] ìŠ¤í† ë¦¬ ê²€ìƒ‰ ì¤‘: {storyName}");
 
         foreach (var s in storyDatas)
-            Debug.Log($"[GameManager] »ç¿ë °¡´ÉÇÑ ½ºÅä¸®: {s.name}");
+            Debug.Log($"[GameManager] ì‚¬ìš© ê°€ëŠ¥í•œ ìŠ¤í† ë¦¬: {s.name}");
         currentStoryData = System.Array.Find(storyDatas, s => s.name == storyName);
 
         if (currentStoryData == null)
         {
-            Debug.LogError($"[GameManager] ½ºÅä¸® µ¥ÀÌÅÍ¸¦ Ã£À» ¼ö ¾øÀ½: {storyName}");
+            Debug.LogError($"[GameManager] ìŠ¤í† ë¦¬ ë°ì´í„°ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŒ: {storyName}");
             return;
         }
 

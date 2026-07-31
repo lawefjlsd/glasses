@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
+/// <summary>
+/// íƒ€ì¼ë§µ ì¡°íšŒ ê¸°ëŠ¥ì„ ì œê³µí•©ë‹ˆë‹¤.
+/// </summary>
 public class TilemapManager : MonoBehaviour
 {
     public Tilemap[] tilemaps;
@@ -13,7 +16,7 @@ public class TilemapManager : MonoBehaviour
                 return tilemap;
             }
         }
-        Debug.LogError($"[TilemapManager] ÀÌ¸§¿¡ ÇØ´çÇÏ´Â Å¸ÀÏ¸ÊÀ» Ã£À» ¼ö ¾øÀ½: {name}");
+        Debug.LogError($"[TilemapManager] ì´ë¦„ì— í•´ë‹¹í•˜ëŠ” íƒ€ì¼ë§µì„ ì°¾ì„ ìˆ˜ ì—†ìŒ: {name}");
         return null;
     }
 

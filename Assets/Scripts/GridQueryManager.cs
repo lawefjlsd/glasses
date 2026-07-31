@@ -2,6 +2,9 @@ using System;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
+/// <summary>
+/// ê²©ì ì¢Œí‘œì˜ ì˜¤ë¸Œì íŠ¸ì™€ ì´ë™ ê°€ëŠ¥ ì—¬ë¶€ë¥¼ ì¡°íšŒí•©ë‹ˆë‹¤.
+/// </summary>
 public class GridQueryManager : MonoBehaviour
 {
     public static GridQueryManager Instance { get; private set; }
@@ -28,10 +31,8 @@ public class GridQueryManager : MonoBehaviour
     {
         tilemapManager = FindObjectOfType<TilemapManager>();
     }
-    // ¦¡¦¡ Color Query ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
-    /// <summary>
-    /// ÁÖ¾îÁø À§Ä¡/Å¸ÀÔ¿¡ ÇØ´çÇÏ´Â »ö ÀÌ¸§À» ¹İÈ¯ÇÑ´Ù. (Ground / Merged / Background Àü¿ë)
-    /// </summary>
+
+
     public string GetColorNameAtPosition(Vector3 position, ObjectType type, Tilemap tilemap)
     {
         switch (type)
@@ -47,11 +48,7 @@ public class GridQueryManager : MonoBehaviour
         }
     }
 
-    // ¦¡¦¡ ObjectType Query ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
-    /// <summary>
-    /// positionÀÇ "ground"¸¦ ÆÇÁ¤ÇÑ´Ù(ColorBlockÆ÷ÇÔ)
-    /// (ÇÃ·¹ÀÌ¾î°¡ "Áö±İ ÀÌ Ä­¿¡ ¹¹°¡ ÀÖ´Â°¡"¸¦ ¹°À» ¶§ »ç¿ë)
-    /// </summary>
+
     public ObjectType GetObjectTypeAt(Vector3 position)
     {
         BlockMerged[] mergedBlocks = FindObjectsOfType<BlockMerged>();
@@ -60,19 +57,19 @@ public class GridQueryManager : MonoBehaviour
             if (merged.isInfinite) continue;
             if (merged.remainingTurns != 1) continue;
 
-            // origin ÀÚ¸® (ºĞ¸®µÇ¸ç ¹è°æÀÌ µå·¯³¯ ÀÚ¸®)
+
             if (Vector3.Distance(merged.originBlockPosition, position) < 0.01f)
             {
-                Debug.LogWarning($"[GridQueryManager] {position} ÀÚ¸®´Â ´ÙÀ½ ÅÏ¿¡ ºí·ÏÀÌ ºĞ¸®µÉ ¿¹Á¤ÀÌ¶ó ÁøÀÔ ºÒ°¡");
+                Debug.LogWarning($"[GridQueryManager] {position} ìë¦¬ëŠ” ë‹¤ìŒ í„´ì— ë¸”ë¡ì´ ë¶„ë¦¬ë  ì˜ˆì •ì´ë¼ ì§„ì… ë¶ˆê°€");
                 return ObjectType.Obstacle;
             }
 
-            // ¿ä±¸»çÇ× 2: ºĞ¸®·Î ÀÎÇØ ¹Ğ·Á³¯ Ã¼ÀÎ °æ·Î ÀüÃ¼µµ obstacle·Î °£ÁÖ
+
             foreach (var pathPos in merged.pendingSeparationPath)
             {
                 if (Vector3.Distance(pathPos, position) < 0.01f)
                 {
-                    Debug.LogWarning($"[GridQueryManager] {position} ÀÚ¸®´Â ´ÙÀ½ ÅÏ ºĞ¸®·Î ºí·ÏÀÌ ¹Ğ·Á¿Ã ¿¹Á¤ÀÌ¶ó ÁøÀÔ ºÒ°¡");
+                    Debug.LogWarning($"[GridQueryManager] {position} ìë¦¬ëŠ” ë‹¤ìŒ í„´ ë¶„ë¦¬ë¡œ ë¸”ë¡ì´ ë°€ë ¤ì˜¬ ì˜ˆì •ì´ë¼ ì§„ì… ë¶ˆê°€");
                     return ObjectType.Obstacle;
                 }
             }
@@ -84,10 +81,7 @@ public class GridQueryManager : MonoBehaviour
         return GetGroundTypeAt(position, tilemap);
     }
 
-    /// <summary>
-    /// positionÀÇ "ground"¸¦ ÆÇÁ¤ÇÑ´Ù(ColorBlockÁ¦¿Ü)
-    /// (ºí·ÏÀÌ Ä¡¿öÁ³À» ¶§ ±× ¾Æ·¡¿¡ ¹«¾ùÀÌ ÀÖ´ÂÁö, ¶Ç´Â ºí·ÏÀÌ ¾ø´Â Ä­À» ¹°À» ¶§ »ç¿ë)
-    /// </summary>
+
     public ObjectType GetGroundTypeAt(Vector3 position, Tilemap tilemap)
     {
         if (GetColliderAt(position, colorBlockBackgroundLayer) != null) return ObjectType.ColorBlockBackground;
@@ -114,10 +108,8 @@ public class GridQueryManager : MonoBehaviour
         }
         return false;
     }
-    ///<summary>
-    ///player°¡ ÀÌµ¿ÇÒ positionÀÇ Á¤º¸ Á¦°ø
-    ///(rather can move, colorname, isExclusive)¸¦ ¹İÈ¯
-    /// </summary>
+
+
     public Tuple<bool, string, bool> GetInfoMoveToColorPosition(Vector3 position)
     {
         Tilemap tilemap = tilemapManager.GetTilemapAtPosition(position);
@@ -133,7 +125,6 @@ public class GridQueryManager : MonoBehaviour
         bool canMove = GameManager.Instance.IsAvailableBlock(colorName, isExclusive);
         return Tuple.Create<bool, string, bool>(canMove, colorName, isExclusive);
     }
-
 
 
 }

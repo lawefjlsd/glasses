@@ -4,6 +4,9 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using GQObjectType = GridQueryManager.ObjectType;
 
+/// <summary>
+/// ë¸”ë¡ì˜ ì—°ì‡„ ë°€ê¸°ì™€ ë³‘í•©ì„ ì²˜ë¦¬í•©ë‹ˆë‹¤.
+/// </summary>
 public class BlockManager : MonoBehaviour
 {
     public static BlockManager Instance { get; private set; }
@@ -17,12 +20,7 @@ public class BlockManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
-    // ¦¡¦¡ Push Logic ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
 
-    /// <summary>
-    /// Àç±ÍÀûÀ¸·Î ´ÙÀ½ Ä­µéÀ» È®ÀÎÇØ, ºí·ÏµéÀÌ ¿¬¼âÀûÀ¸·Î ³¡±îÁö ¹Ğ¸± ¼ö ÀÖ´ÂÁö °Ë»çÇÑ´Ù.
-    /// (Obstacle/Empty¸¦ ¸¸³ª¸é false, ±× ¿Ü¿¡´Â true)
-    /// </summary>
     public bool CanPushBlockContinuously(Vector3 position, Vector3 input ,List<Vector3> path, bool isBeforeBlock = false)
     {
         Vector3 nextPosition = position + input;
@@ -32,7 +30,7 @@ public class BlockManager : MonoBehaviour
         {
             case GQObjectType.Obstacle:
             case GQObjectType.Empty:
-                Debug.Log("[Blockmanager] ÀÌµ¿ ºÒ°¡: ¸·ÇôÀÖ°Å³ª ºó Ä­");
+                Debug.Log("[Blockmanager] ì´ë™ ë¶ˆê°€: ë§‰í˜€ìˆê±°ë‚˜ ë¹ˆ ì¹¸");
                 return false;
 
             case GQObjectType.ColorBlock:
@@ -45,7 +43,7 @@ public class BlockManager : MonoBehaviour
                 path.Add(nextPosition);
                 return true;
             default:
-                Debug.Log("[Blockmanager] ¹Ğ±â ºÒ°¡: Á¤ÀÇµÇÁö ¾ÊÀº ±¸¿ª");
+                Debug.Log("[Blockmanager] ë°€ê¸° ë¶ˆê°€: ì •ì˜ë˜ì§€ ì•Šì€ êµ¬ì—­");
                 return false;
         }
     }
@@ -62,33 +60,27 @@ public class BlockManager : MonoBehaviour
         else
             yield return StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(blockCollider.transform, targetPos, blockSpeed));
     }
-    /// <summary>
-    /// CanPushChainÀ¸·Î È®º¸µÈ °æ·Î¸¦ µû¶ó Ã¼ÀÎÀÇ ¸ğµç ºí·ÏÀ» µ¿½Ã¿¡ ÀÌµ¿/º´ÇÕ½ÃÅ²´Ù.
-    /// startPosition ÀÚÃ¼ÀÇ ºí·Ïµµ Æ÷ÇÔÇØ¼­ Ã³¸®ÇÑ´Ù.
-    /// </summary>
+
+
     public IEnumerator ExecutePushChain(Vector3 startPosition, Vector3 input, List<Vector3> path)
     {
         List<Coroutine> moves = new List<Coroutine>();
 
-        // Ã¼ÀÎÀÇ ³¡(¸Õ °÷)ºÎÅÍ ¿Å°Ü¾ß ¼­·Î °ãÄ¡Áö ¾ÊÀ½
+
         for (int i = path.Count - 1; i >= 0; i--)
         {
             Vector3 currentPos = path[i];
             moves.Add(StartCoroutine(MoveOrMergeAt(currentPos, input)));
         }
 
-        // ½ÃÀÛ À§Ä¡ÀÇ ºí·Ï(Ã¼ÀÎÀÇ Ã¹ ºí·Ï)µµ ÀÌµ¿
+
         moves.Add(StartCoroutine(MoveOrMergeAt(startPosition, input)));
 
         foreach (var move in moves)
             yield return move;
     }
 
-    // ¦¡¦¡ Merge Logic ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
-    /// <summary>
-    /// ºí·ÏÀ» ¹è°æ À§·Î ¹Ğ¾î ³Ö¾úÀ» ¶§ º´ÇÕÀ» ½ÃµµÇÑ´Ù.
-    /// »öÀÌ ¸ÂÁö ¾ÊÀ¸¸é º´ÇÕ ´ë½Å ´Ü¼ø ÀÌµ¿À¸·Î Ã³¸®ÇÑ´Ù.
-    /// </summary>
+
     private IEnumerator TryMergeBlock(Collider2D blockCollider, Vector3 blockTargetPosition)
     {
         Block blockScript = blockCollider.GetComponent<Block>();

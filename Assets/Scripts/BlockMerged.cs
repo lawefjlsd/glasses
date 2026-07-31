@@ -1,6 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+/// <summary>
+/// 병합 블록의 상태와 분리 정보를 관리합니다.
+/// </summary>
 public class BlockMerged : MonoBehaviour
 {
     public string colorName;
@@ -35,7 +38,7 @@ public class BlockMerged : MonoBehaviour
         if (durationTurns <= 0)
             isInfinite = true;
 
-        Debug.Log($"[BlockMerged] InitializeTimer ȣ��� - isJustCreated: {isJustCreated}");
+        Debug.Log($"[BlockMerged] InitializeTimer 호출됨 - isJustCreated: {isJustCreated}");
     }
 
 }

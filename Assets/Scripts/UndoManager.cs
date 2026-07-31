@@ -4,6 +4,9 @@ using UnityEngine;
 using GQObjectType = GridQueryManager.ObjectType;
 
 [System.Serializable]
+/// <summary>
+/// ë˜ëŒë¦¬ê¸°ì— í•„ìš”í•œ ì˜¤ë¸Œì íŠ¸ ìƒíƒœë¥¼ ë³´ê´€í•©ë‹ˆë‹¤.
+/// </summary>
 public class ObjectState
 {
     public GameObject targetObject;
@@ -15,12 +18,18 @@ public class ObjectState
 }
 
 [System.Serializable]
+/// <summary>
+/// ë˜ëŒë¦¬ê¸°ì— í•„ìš”í•œ í•œ í„´ì˜ ìƒíƒœë¥¼ ë³´ê´€í•©ë‹ˆë‹¤.
+/// </summary>
 public class TurnData
 {
     public Vector3 playerPosition;
     public string systemColor;
     public List<ObjectState> savedState = new List<ObjectState>();
 }
+/// <summary>
+/// í„´ ë‹¨ìœ„ ë˜ëŒë¦¬ê¸°ë¥¼ ì €ì¥í•˜ê³  ë³µì›í•©ë‹ˆë‹¤.
+/// </summary>
 public class UndoManager : MonoBehaviour
 {
     public static UndoManager Instance { get; private set; }
@@ -60,12 +69,11 @@ public class UndoManager : MonoBehaviour
     }
 
 
-    // ¦¡¦¡ Core Undo Logic ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
     private void ExecuteUndo()
     {
         if (undoStack.Count == 0)
         {
-            Debug.Log("[UndoManager] µÇµ¹¸± ÅÏÀÌ ¾øÀ½");
+            Debug.Log("[UndoManager] ë˜ëŒë¦´ í„´ì´ ì—†ìŒ");
             return;
         }
 
@@ -73,10 +81,8 @@ public class UndoManager : MonoBehaviour
 
         StartCoroutine(AnimateUndo(previousTurn));
     }
-    
-    /// <summary>
-    /// restore color -> save all coroutines in list -> "UndoMerge" -> Do coroutines -> "UndoSeparate"  -> Set on Grid
-    /// </summary>
+
+
     private IEnumerator AnimateUndo(TurnData previousTurn)
     {
         isUndoAnimation = true;
@@ -96,10 +102,10 @@ public class UndoManager : MonoBehaviour
         FinalizeObjectsState(previousTurn);
 
         isUndoAnimation = false;
-        Debug.Log("[UndoManager] Undo ¿¬Ãâ ¿Ï·á");
+        Debug.Log("[UndoManager] Undo ì—°ì¶œ ì™„ë£Œ");
     }
 
-    // ¦¡¦¡ Undo Helpers ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+
     private void PrepareUndoMovement(TurnData previousTurn, List<Coroutine> moveCoroutines)
     {
         player.ResetTargetPosition(previousTurn.playerPosition);
@@ -123,9 +129,6 @@ public class UndoManager : MonoBehaviour
     }
 
 
-    /// <summary>
-    /// Set the all objects on Grid
-    /// </summary>
     private void FinalizeObjectsState(TurnData previousTurn)
     {
         foreach (var state in previousTurn.savedState)
@@ -135,10 +138,8 @@ public class UndoManager : MonoBehaviour
             state.targetObject.SetActive(state.isActive);
         }
     }
-    // ¦¡¦¡ SetAcite manage ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
-    /// <summary>
-    /// situation1 : move(merge) -> undo
-    /// </summary>
+
+
     private void UndoMerge(TurnData previousTurn)
     {
         foreach (var state in previousTurn.savedState)
@@ -157,9 +158,7 @@ public class UndoManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// move(merge) -> separate -> undo
-    /// </summary>
+
     private void UndoSeparate(TurnData previousTurn)
     {
         foreach (var state in previousTurn.savedState)
@@ -170,20 +169,17 @@ public class UndoManager : MonoBehaviour
 
             if (mergedScript != null)
             {
-                // »óÈ² 2: ºĞ¸®µÇ¾î ÆÄ±«/ºñÈ°¼ºÈ­µÇ¾ú´ø °ú°ÅÀÇ Merged ºí·Ï µ¥ÀÌÅÍ ¹× µ¥ÀÌÅÍ ¿ÏÀü º¹±¸
+
                 mergedScript.remainingTurns = state.remainingTurns;
                 mergedScript.isJustCreated = false;
                 state.targetObject.transform.position = state.position;
             }
 
-            // ÃÖÁ¾ On/Off »óÅÂ ÀåºÎ´ë·Î µ¿±âÈ­ (»óÈ² 2·Î ÀÎÇØ ²¨Á®¾ß ÇÒ ¿ø·¡ ºí·ÏµéÀº ¿©±â¼­ ²¨Áü)
+
             state.targetObject.SetActive(state.isActive);
         }
     }
 
-
-
-    // ¦¡¦¡ Stack Manage ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
 
     public void RegisterNewlyMergedObject(GameObject mergedObject, BlockMerged mergedScript)
     {
@@ -206,9 +202,7 @@ public class UndoManager : MonoBehaviour
         if (!registryObjects.Contains(newObject)) registryObjects.Add(newObject);
     }
 
-    ///<summary>
-    ///Turn save (ÇÃ·¹ÀÌ¾î°¡ ¿òÁ÷ÀÌ±â Á÷Àü¿¡ È£Ãâ)
-    /// </summary>
+
     public void SaveCurrentTurn()
     {
 
@@ -231,13 +225,13 @@ public class UndoManager : MonoBehaviour
                 bool merged = mergedScript.isJustCreated;
                 AddState(turn, currentObject, type, leftTurns, merged);
 
-                Debug.Log($"[UndoManager] SaveCurrentTurn - isJustCreated: {merged}, mergedScript Á¸Àç: {mergedScript != null}");
+                Debug.Log($"[UndoManager] SaveCurrentTurn - isJustCreated: {merged}, mergedScript ì¡´ì¬: {mergedScript != null}");
             }
             else
             {
                 GQObjectType type = GridQueryManager.Instance.GetObjectTypeAt(currentObject.transform.position);
                 AddState(turn, currentObject, type);
-                Debug.Log($"[UndoManager] SaveCurrentTurn - type: {type}, mergedScript Á¸Àç: {mergedScript != null}");
+                Debug.Log($"[UndoManager] SaveCurrentTurn - type: {type}, mergedScript ì¡´ì¬: {mergedScript != null}");
             }
 
         }

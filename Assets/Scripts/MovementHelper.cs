@@ -1,6 +1,9 @@
 using System.Collections;
 using UnityEngine;
 
+/// <summary>
+/// 게임 오브젝트의 부드러운 이동을 처리합니다.
+/// </summary>
 public class MovementHelper : MonoBehaviour
 {
     public static MovementHelper Instance { get; private set; }
@@ -11,9 +14,7 @@ public class MovementHelper : MonoBehaviour
         else Destroy(gameObject);
     }
 
-    /// <summary>
-    /// Move coroutine!
-    /// </summary>
+
     public IEnumerator SmoothMoveCoroutine(Transform target, Vector3 targetPosition, float speed)
     {
         if (target == null) yield break;

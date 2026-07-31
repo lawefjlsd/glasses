@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// ë³‘í•© ë¸”ë¡ì˜ í„´ ê²½ê³¼ì™€ ë¶„ë¦¬ë¥¼ ì²˜ë¦¬í•©ë‹ˆë‹¤.
+/// </summary>
 public class SeparationManager : MonoBehaviour
 {
     public static SeparationManager Instance { get; private set; }
@@ -15,9 +18,7 @@ public class SeparationManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
-    /// <summary>
-    /// each turn -> left turn calculate + trigger separation
-    /// </summary>
+
     public void TickMergedBlocksTurn()
     {
         BlockMerged[] mergedBlocks = FindObjectsOfType<BlockMerged>();
@@ -30,13 +31,13 @@ public class SeparationManager : MonoBehaviour
             if (merged.isJustCreated)
             {
                 merged.isJustCreated = false;
-                Debug.Log($"[SeparationManager] {merged.name} ¹æ±İ »ı¼ºµÊ - ³²Àº ÅÏ: {merged.remainingTurns}");
+                Debug.Log($"[SeparationManager] {merged.name} ë°©ê¸ˆ ìƒì„±ë¨ - ë‚¨ì€ í„´: {merged.remainingTurns}");
                 continue;
             }
-            //remainingTurns == 1ÀÏ¶§ separateµÉ °æ·Î + ±×¿¡ ¸ÂÃç ¹Ğ¸®´Â blockµéÀÇ °æ·Î´Â obstacle·Î °£ÁÖ
+
 
             merged.remainingTurns--;
-            Debug.Log($"[SeparationManager] {merged.name} ³²Àº ÅÏ: {merged.remainingTurns}");
+            Debug.Log($"[SeparationManager] {merged.name} ë‚¨ì€ í„´: {merged.remainingTurns}");
 
             if(merged.remainingTurns == 1)
                 PrepareSeparationPath(merged);
@@ -46,16 +47,13 @@ public class SeparationManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// ºĞ¸® ½Ã ¹Ğ·Á³¯ °æ·Î¸¦ ¹Ì¸® °è»êÇØ pendingSeparationPath¿¡ ÀúÀåÇÑ´Ù (°¡»ó º® ÆÇÁ¤¿ë).
-    /// ¿ä±¸»çÇ× 3: ³¡±îÁö ¹Ğ ¼ö ¾øÀ¸¸é remainingTurns¸¦ 1·Î µÇµ¹·Á ºĞ¸®¸¦ À¯¿¹ÇÑ´Ù.
-    /// </summary>
+
     private void PrepareSeparationPath(BlockMerged merged)
     {
         merged.pendingSeparationPath.Clear();
 
         Collider2D standingBlock = Physics2D.OverlapPoint(merged.originBlockPosition, GridQueryManager.Instance.colorBlockLayer);
-        if (standingBlock == null) return; // ¹Ğ ºí·Ï ÀÚÃ¼°¡ ¾øÀ¸¸é °æ·Î ºÒÇÊ¿ä
+        if (standingBlock == null) return;
 
         Vector3 pushDirection = (merged.originBlockPosition - merged.transform.position).normalized;
         List<Vector3> path = new List<Vector3>();
@@ -64,18 +62,15 @@ public class SeparationManager : MonoBehaviour
 
         if (!canPush)
         {
-            merged.remainingTurns = 1; // ¿ä±¸»çÇ× 3: À¯¿¹ À¯Áö
-            Debug.LogWarning($"[SeparationManager] {merged.name} ºĞ¸® °æ·Î°¡ ¸·Çô ÀÖ¾î ºĞ¸®¸¦ À¯¿¹ÇÔ");
+            merged.remainingTurns = 1;
+            Debug.LogWarning($"[SeparationManager] {merged.name} ë¶„ë¦¬ ê²½ë¡œê°€ ë§‰í˜€ ìˆì–´ ë¶„ë¦¬ë¥¼ ìœ ì˜ˆí•¨");
             return;
         }
 
         merged.pendingSeparationPath = path;
     }
 
-    /// <summary>
-    /// ¿ä±¸»çÇ× 1: ºĞ¸® ½Ã, origin ÀÚ¸®¿¡ ºí·ÏÀÌ ÀÖÀ¸¸é CanPushChain/ExecutePushChainÀ¸·Î
-    /// player°¡ ¹Ì´Â °Í°ú µ¿ÀÏÇÑ ¹æ½ÄÀ¸·Î Ã¼ÀÎ ÀüÃ¼¸¦ ¹Î´Ù.
-    /// </summary>
+
     private void ProcessSeparation(BlockMerged merged)
     {
         Collider2D standingBlock = Physics2D.OverlapPoint(merged.originBlockPosition, GridQueryManager.Instance.colorBlockLayer);
@@ -84,21 +79,21 @@ public class SeparationManager : MonoBehaviour
         {
             Vector3 pushDirection = (merged.originBlockPosition - merged.transform.position).normalized;
 
-            // ÀÌ¹Ì PrepareSeparationPath¿¡¼­ °ËÁõµÈ °æ·Î¸¦ ±×´ë·Î »ç¿ë
+
             if (merged.pendingSeparationPath.Count > 0 || BlockManager.Instance.CanPushBlockContinuously(merged.originBlockPosition, pushDirection, merged.pendingSeparationPath))
             {
                 StartCoroutine(BlockManager.Instance.ExecutePushChain(merged.originBlockPosition, pushDirection, merged.pendingSeparationPath));
-                Debug.Log($"[SeparationManager] {merged.name} ºĞ¸® ¾Ğ·ÂÀ¸·Î Ã¼ÀÎ ¹Ğ±â ½ÇÇà");
+                Debug.Log($"[SeparationManager] {merged.name} ë¶„ë¦¬ ì••ë ¥ìœ¼ë¡œ ì²´ì¸ ë°€ê¸° ì‹¤í–‰");
             }
             else
             {
-                merged.remainingTurns = 1; // ¹æ¾î: È¤½Ã ±× »çÀÌ »óÈ²ÀÌ ¹Ù²î¾ú´Ù¸é ´Ù½Ã À¯¿¹
-                Debug.LogWarning($"[SeparationManager] {merged.name} ºĞ¸® Á÷Àü °æ·Î°¡ ¸·Çô À¯¿¹·Î µÇµ¹¸²");
+                merged.remainingTurns = 1;
+                Debug.LogWarning($"[SeparationManager] {merged.name} ë¶„ë¦¬ ì§ì „ ê²½ë¡œê°€ ë§‰í˜€ ìœ ì˜ˆë¡œ ë˜ëŒë¦¼");
                 return;
             }
         }
 
-        // ¿øº» ¹è°æ/ºí·Ï º¹±¸ (±âÁ¸ ·ÎÁ÷ ±×´ë·Î)
+
         if (merged.originBackgroundObject != null)
             merged.originBackgroundObject.SetActive(true);
 
@@ -109,11 +104,11 @@ public class SeparationManager : MonoBehaviour
             GameObject originalBlock = merged.originBlockPrefab;
             originalBlock.SetActive(true);
             StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(originalBlock.transform, merged.originBlockPosition, separateSpeed));
-            Debug.Log($"[SeparationManager] {originalBlock.name} ¿øº» ¿ÀºêÁ§Æ® ÀçÈ°¼ºÈ­");
+            Debug.Log($"[SeparationManager] {originalBlock.name} ì›ë³¸ ì˜¤ë¸Œì íŠ¸ ì¬í™œì„±í™”");
         }
 
         merged.pendingSeparationPath.Clear();
-        Debug.Log($"[SeparationManager] {merged.name} ºĞ¸® ¿Ï·á");
+        Debug.Log($"[SeparationManager] {merged.name} ë¶„ë¦¬ ì™„ë£Œ");
     }
 
 
