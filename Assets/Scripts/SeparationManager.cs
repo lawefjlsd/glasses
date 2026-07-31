@@ -36,24 +36,37 @@ public class SeparationManager : MonoBehaviour
             }
 
 
+            if (merged.remainingTurns <= 1)
+            {
+                if (!PrepareSeparationPath(merged))
+                {
+                    merged.remainingTurns = 1;
+                    Debug.LogWarning($"[SeparationManager] {merged.name} 분리 경로가 막혀 분리를 유예함");
+                    continue;
+                }
+
+                ProcessSeparation(merged);
+                continue;
+            }
+
             merged.remainingTurns--;
             Debug.Log($"[SeparationManager] {merged.name} 남은 턴: {merged.remainingTurns}");
 
-            if(merged.remainingTurns == 1)
-                PrepareSeparationPath(merged);
-
-            if (merged.remainingTurns <= 0)
-                ProcessSeparation(merged);
+            if (merged.remainingTurns == 1 && !PrepareSeparationPath(merged))
+            {
+                merged.remainingTurns = 1;
+                Debug.LogWarning($"[SeparationManager] {merged.name} 분리 경로가 막혀 분리를 유예함");
+            }
         }
     }
 
 
-    private void PrepareSeparationPath(BlockMerged merged)
+    private bool PrepareSeparationPath(BlockMerged merged)
     {
         merged.pendingSeparationPath.Clear();
 
         Collider2D standingBlock = Physics2D.OverlapPoint(merged.originBlockPosition, GridQueryManager.Instance.colorBlockLayer);
-        if (standingBlock == null) return;
+        if (standingBlock == null) return true;
 
         Vector3 pushDirection = (merged.originBlockPosition - merged.transform.position).normalized;
         List<Vector3> path = new List<Vector3>();
@@ -62,12 +75,11 @@ public class SeparationManager : MonoBehaviour
 
         if (!canPush)
         {
-            merged.remainingTurns = 1;
-            Debug.LogWarning($"[SeparationManager] {merged.name} 분리 경로가 막혀 있어 분리를 유예함");
-            return;
+            return false;
         }
 
         merged.pendingSeparationPath = path;
+        return true;
     }
 
 
@@ -80,17 +92,17 @@ public class SeparationManager : MonoBehaviour
             Vector3 pushDirection = (merged.originBlockPosition - merged.transform.position).normalized;
 
 
-            if (merged.pendingSeparationPath.Count > 0 || BlockManager.Instance.CanPushBlockContinuously(merged.originBlockPosition, pushDirection, merged.pendingSeparationPath))
-            {
-                StartCoroutine(BlockManager.Instance.ExecutePushChain(merged.originBlockPosition, pushDirection, merged.pendingSeparationPath));
-                Debug.Log($"[SeparationManager] {merged.name} 분리 압력으로 체인 밀기 실행");
-            }
-            else
+            List<Vector3> path = new List<Vector3>();
+            if (!BlockManager.Instance.CanPushBlockContinuously(merged.originBlockPosition, pushDirection, path))
             {
                 merged.remainingTurns = 1;
                 Debug.LogWarning($"[SeparationManager] {merged.name} 분리 직전 경로가 막혀 유예로 되돌림");
                 return;
             }
+
+            merged.pendingSeparationPath = path;
+            StartCoroutine(BlockManager.Instance.ExecutePushChain(merged.originBlockPosition, pushDirection, path));
+            Debug.Log($"[SeparationManager] {merged.name} 분리 압력으로 체인 밀기 실행");
         }
 
 
