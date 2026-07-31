@@ -65,10 +65,13 @@ public class SeparationManager : MonoBehaviour
     {
         merged.pendingSeparationPath.Clear();
 
+        Vector3 separationOffset = merged.originBlockPosition - merged.transform.position;
+        if (separationOffset.sqrMagnitude < 0.0001f) return true;
+
         Collider2D standingBlock = Physics2D.OverlapPoint(merged.originBlockPosition, GridQueryManager.Instance.colorBlockLayer);
         if (standingBlock == null) return true;
 
-        Vector3 pushDirection = (merged.originBlockPosition - merged.transform.position).normalized;
+        Vector3 pushDirection = separationOffset.normalized;
         List<Vector3> path = new List<Vector3>();
 
         bool canPush = BlockManager.Instance.CanPushBlockContinuously(merged.originBlockPosition, pushDirection, path);
@@ -86,11 +89,18 @@ public class SeparationManager : MonoBehaviour
 
     private IEnumerator ProcessSeparation(BlockMerged merged)
     {
+        Vector3 separationOffset = merged.originBlockPosition - merged.transform.position;
+        if (separationOffset.sqrMagnitude < 0.0001f)
+        {
+            merged.BeginSeparation();
+        }
+        else
+        {
         Collider2D standingBlock = Physics2D.OverlapPoint(merged.originBlockPosition, GridQueryManager.Instance.colorBlockLayer);
 
         if (standingBlock != null)
         {
-            Vector3 pushDirection = (merged.originBlockPosition - merged.transform.position).normalized;
+            Vector3 pushDirection = separationOffset.normalized;
 
 
             List<Vector3> path = new List<Vector3>();
@@ -110,6 +120,7 @@ public class SeparationManager : MonoBehaviour
         {
             merged.BeginSeparation();
         }
+        }
 
 
         if (merged.originBackgroundObject != null)
@@ -121,6 +132,13 @@ public class SeparationManager : MonoBehaviour
         {
             GameObject originalBlock = merged.originBlockPrefab;
             originalBlock.SetActive(true);
+
+            if (GameManager.Instance != null && GameManager.Instance.CheckForOverlappingColorBlocks())
+            {
+                merged.EndSeparation();
+                yield break;
+            }
+
             yield return StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(originalBlock.transform, merged.originBlockPosition, separateSpeed));
             Debug.Log($"[SeparationManager] {originalBlock.name} 원본 오브젝트 재활성화");
         }

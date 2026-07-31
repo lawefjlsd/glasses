@@ -27,6 +27,8 @@ public class GameManager : MonoBehaviour
     private Dictionary<string, Tuple<bool, bool, bool>> forColorMap = new Dictionary<string, Tuple<bool, bool, bool>>();
     private Dictionary<Tuple<bool, bool, bool>, string> revColorMap = new Dictionary<Tuple<bool, bool, bool>, string>();
     private Dictionary<int, int> stagesPerChapter = new Dictionary<int, int>();
+    private bool isGameOver;
+    public bool IsGameOver => isGameOver;
 
 
     private void Awake()
@@ -59,8 +61,19 @@ public class GameManager : MonoBehaviour
 
         currentColor = "Black";
 
+        GameUI gameUI = GetComponent<GameUI>();
+        if (gameUI == null)
+            gameUI = gameObject.AddComponent<GameUI>();
+        gameUI.Initialize(this);
+
 
         Debug.Log($"[GameManager] 초기 색상 설정: {currentColor}");
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.R))
+            RestartCurrentStage();
     }
 
 
@@ -75,14 +88,67 @@ public class GameManager : MonoBehaviour
 
     public IEnumerator OnTurnAdvanced()
     {
+        if (isGameOver) yield break;
+
+        if (CheckForOverlappingColorBlocks()) yield break;
+
         if (BlockManager.Instance != null)
             yield return StartCoroutine(BlockManager.Instance.ResolveMergesOnBoard());
+
+        if (CheckForOverlappingColorBlocks()) yield break;
 
         if (SeparationManager.Instance != null)
             yield return StartCoroutine(SeparationManager.Instance.TickMergedBlocksTurn());
 
+        if (CheckForOverlappingColorBlocks()) yield break;
+
         if (BlockManager.Instance != null)
             yield return StartCoroutine(BlockManager.Instance.ResolveMergesOnBoard());
+
+        CheckForOverlappingColorBlocks();
+    }
+
+    public bool CheckForOverlappingColorBlocks()
+    {
+        if (isGameOver || GridQueryManager.Instance == null) return isGameOver;
+
+        Block[] blocks = FindObjectsOfType<Block>();
+        foreach (Block block in blocks)
+        {
+            Collider2D[] colliders = Physics2D.OverlapPointAll(
+                block.transform.position,
+                GridQueryManager.Instance.colorBlockLayer);
+
+            HashSet<Block> overlappingBlocks = new HashSet<Block>();
+            foreach (Collider2D collider in colliders)
+            {
+                Block overlappingBlock = collider.GetComponent<Block>();
+                if (overlappingBlock != null)
+                    overlappingBlocks.Add(overlappingBlock);
+            }
+
+            if (overlappingBlocks.Count > 1)
+            {
+                TriggerGameOver();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void RestartCurrentStage()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    private void TriggerGameOver()
+    {
+        if (isGameOver) return;
+
+        isGameOver = true;
+        GetComponent<GameUI>()?.ShowGameOver();
+        Debug.Log("[GameManager] Game Over: ColorBlock overlap detected.");
     }
 
 

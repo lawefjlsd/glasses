@@ -38,6 +38,7 @@ public class Player : MonoBehaviour
     private void Update()
     {
         if (IsMovingStatus()) return;
+        if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
         if (UndoManager.Instance != null && UndoManager.Instance.IsUndoRunning) return;
         if (GridQueryManager.Instance.CheckIfAnyBlockIsSeparating()) return;
         Move();
