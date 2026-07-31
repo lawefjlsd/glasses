@@ -132,6 +132,7 @@ public class SeparationManager : MonoBehaviour
         {
             GameObject originalBlock = merged.originBlockPrefab;
             originalBlock.SetActive(true);
+            yield return StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(originalBlock.transform, merged.originBlockPosition, separateSpeed));
 
             if (GameManager.Instance != null && GameManager.Instance.CheckForOverlappingColorBlocks())
             {
@@ -139,7 +140,6 @@ public class SeparationManager : MonoBehaviour
                 yield break;
             }
 
-            yield return StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(originalBlock.transform, merged.originBlockPosition, separateSpeed));
             Debug.Log($"[SeparationManager] {originalBlock.name} 원본 오브젝트 재활성화");
         }
 
