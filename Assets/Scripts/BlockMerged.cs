@@ -22,6 +22,11 @@ public class BlockMerged : MonoBehaviour
 
     private bool isSeparating = false;
     public bool IsSeparating => isSeparating;
+
+    public void BeginSeparation() => isSeparating = true;
+
+    public void EndSeparation() => isSeparating = false;
+
     void Start()
     {
         UndoManager.Instance.RegisterDynamicObject(this.gameObject);

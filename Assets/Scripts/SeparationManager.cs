@@ -19,7 +19,7 @@ public class SeparationManager : MonoBehaviour
     }
 
 
-    public void TickMergedBlocksTurn()
+    public IEnumerator TickMergedBlocksTurn()
     {
         BlockMerged[] mergedBlocks = FindObjectsOfType<BlockMerged>();
 
@@ -45,7 +45,7 @@ public class SeparationManager : MonoBehaviour
                     continue;
                 }
 
-                ProcessSeparation(merged);
+                yield return StartCoroutine(ProcessSeparation(merged));
                 continue;
             }
 
@@ -84,7 +84,7 @@ public class SeparationManager : MonoBehaviour
     }
 
 
-    private void ProcessSeparation(BlockMerged merged)
+    private IEnumerator ProcessSeparation(BlockMerged merged)
     {
         Collider2D standingBlock = Physics2D.OverlapPoint(merged.originBlockPosition, GridQueryManager.Instance.colorBlockLayer);
 
@@ -98,12 +98,17 @@ public class SeparationManager : MonoBehaviour
             {
                 merged.remainingTurns = 1;
                 Debug.LogWarning($"[SeparationManager] {merged.name} 분리 직전 경로가 막혀 유예로 되돌림");
-                return;
+                yield break;
             }
 
             merged.pendingSeparationPath = path;
-            StartCoroutine(BlockManager.Instance.ExecutePushChain(merged.originBlockPosition, pushDirection, path));
+            merged.BeginSeparation();
+            yield return StartCoroutine(BlockManager.Instance.ExecutePushChain(merged.originBlockPosition, pushDirection, path));
             Debug.Log($"[SeparationManager] {merged.name} 분리 압력으로 체인 밀기 실행");
+        }
+        else
+        {
+            merged.BeginSeparation();
         }
 
 
@@ -116,11 +121,12 @@ public class SeparationManager : MonoBehaviour
         {
             GameObject originalBlock = merged.originBlockPrefab;
             originalBlock.SetActive(true);
-            StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(originalBlock.transform, merged.originBlockPosition, separateSpeed));
+            yield return StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(originalBlock.transform, merged.originBlockPosition, separateSpeed));
             Debug.Log($"[SeparationManager] {originalBlock.name} 원본 오브젝트 재활성화");
         }
 
         merged.pendingSeparationPath.Clear();
+        merged.EndSeparation();
         Debug.Log($"[SeparationManager] {merged.name} 분리 완료");
     }
 

@@ -81,6 +81,27 @@ public class BlockManager : MonoBehaviour
     }
 
 
+    public IEnumerator ResolveMergesOnBoard()
+    {
+        Block[] blocks = FindObjectsOfType<Block>();
+
+        foreach (Block block in blocks)
+        {
+            if (block == null || !block.isActiveAndEnabled) continue;
+
+            Collider2D blockCollider = block.GetComponent<Collider2D>();
+            if (blockCollider == null) continue;
+
+            Collider2D backgroundCollider = GridQueryManager.Instance.GetColliderAt(
+                block.transform.position,
+                GridQueryManager.Instance.colorBlockBackgroundLayer);
+
+            if (backgroundCollider != null)
+                yield return StartCoroutine(TryMergeBlock(blockCollider, block.transform.position));
+        }
+    }
+
+
     private IEnumerator TryMergeBlock(Collider2D blockCollider, Vector3 blockTargetPosition)
     {
         Block blockScript = blockCollider.GetComponent<Block>();

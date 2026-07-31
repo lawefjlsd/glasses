@@ -73,10 +73,16 @@ public class GameManager : MonoBehaviour
     }
 
 
-    public void OnTurnAdvanced()
+    public IEnumerator OnTurnAdvanced()
     {
+        if (BlockManager.Instance != null)
+            yield return StartCoroutine(BlockManager.Instance.ResolveMergesOnBoard());
+
         if (SeparationManager.Instance != null)
-            SeparationManager.Instance.TickMergedBlocksTurn();
+            yield return StartCoroutine(SeparationManager.Instance.TickMergedBlocksTurn());
+
+        if (BlockManager.Instance != null)
+            yield return StartCoroutine(BlockManager.Instance.ResolveMergesOnBoard());
     }
 
 

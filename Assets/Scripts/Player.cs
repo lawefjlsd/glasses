@@ -81,7 +81,7 @@ public class Player : MonoBehaviour
         var infoMove = GridQueryManager.Instance.GetInfoMoveToColorPosition(position);
 
         if (infoMove.Item1)
-            StartCoroutine(MoveToPosition(position));
+            StartCoroutine(MoveToPositionAndAdvanceTurn(position));
         else
             Debug.Log($"[Player] 이동 불가: 색상 불일치 ({infoMove.Item2})");
     }
@@ -105,20 +105,26 @@ public class Player : MonoBehaviour
         yield return blockChainMove;
         yield return playerMove;
 
+        yield return StartCoroutine(GameManager.Instance.OnTurnAdvanced());
+
         isMoving = false;
     }
 
 
     private IEnumerator MoveToPosition(Vector3 newPosition)
     {
-        isMoving = true;
         targetPosition = newPosition;
 
         yield return StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(transform, targetPosition, moveSpeed));
+    }
+
+
+    private IEnumerator MoveToPositionAndAdvanceTurn(Vector3 newPosition)
+    {
+        isMoving = true;
+        yield return StartCoroutine(MoveToPosition(newPosition));
+        yield return StartCoroutine(GameManager.Instance.OnTurnAdvanced());
         isMoving = false;
-
-
-        GameManager.Instance.OnTurnAdvanced();
     }
 
 
