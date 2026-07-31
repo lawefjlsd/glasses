@@ -1,0 +1,41 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+public class BlockMerged : MonoBehaviour
+{
+    public string colorName;
+
+    [HideInInspector] public int remainingTurns;
+    [HideInInspector] public bool isInfinite;
+    [HideInInspector] public bool isJustCreated;
+    [HideInInspector] public bool isPendingSeparationPrepared = false;
+    [HideInInspector] public Vector3 originBlockPosition;
+    [HideInInspector] public GameObject originBlockPrefab;
+    [HideInInspector] public GameObject originBackgroundObject;
+    [HideInInspector] public List<Vector3> pendingSeparationPath = new List<Vector3>();
+
+    public List<GameObject> originBlocks = new List<GameObject>();
+    public List<GameObject> originBackgrounds = new List<GameObject>();
+
+    private bool isSeparating = false;
+    public bool IsSeparating => isSeparating;
+    void Start()
+    {
+        UndoManager.Instance.RegisterDynamicObject(this.gameObject);
+    }
+    public void InitializeTimer(Vector3 blockPos, GameObject blockPrefab, GameObject backgroundObject, int durationTurns)
+    {
+        originBlockPosition = blockPos;
+        originBlockPrefab = blockPrefab;
+        originBackgroundObject = backgroundObject;
+        remainingTurns = durationTurns;
+
+        isJustCreated = true;
+
+        if (durationTurns <= 0)
+            isInfinite = true;
+
+        Debug.Log($"[BlockMerged] InitializeTimer È£ÃâµÊ - isJustCreated: {isJustCreated}");
+    }
+
+}

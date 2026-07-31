@@ -1,0 +1,21 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+
+# IDE and generated solution files
+.vs/
+*.csproj
+*.sln
+*.user
+*.suo
+*.pidb
+*.booproj
+*.unityproj
+*.tmp
+*.userprefs
+*.log
