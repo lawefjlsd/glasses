@@ -29,6 +29,9 @@ public class BlockManager : MonoBehaviour
     /// </summary>
     public bool CanPushBlockContinuously(Vector3 position, Vector3 input ,List<Vector3> path, bool isBeforeBlock = false)
     {
+        if (!GridQueryManager.Instance.CanExitGroundOneWay(position, input))
+            return false;
+
         Vector3 nextPosition = position + input;
         GQObjectType objectType = GridQueryManager.Instance.GetObjectTypeAt(nextPosition);
 
@@ -44,6 +47,7 @@ public class BlockManager : MonoBehaviour
                 return CanPushBlockContinuously(nextPosition, input, path, true);
 
             case GQObjectType.Ground:
+            case GQObjectType.GroundOneWay:
             case GQObjectType.ColorBlockBackground:
             case GQObjectType.ColorBlockMerged:
                 path.Add(nextPosition);

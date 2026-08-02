@@ -11,13 +11,14 @@ public class GridQueryManager : MonoBehaviour
 
     public enum ObjectType
     {
-        Empty, Obstacle, Ground, ColorBlock, ColorBlockBackground, ColorBlockMerged
+        Empty, Obstacle, Ground, GroundOneWay, ColorBlock, ColorBlockBackground, ColorBlockMerged
     }
 
     [Header("Layer Masks")]
     public LayerMask colorBlockLayer;
     public LayerMask colorBlockBackgroundLayer;
     public LayerMask colorBlockMergedLayer;
+    public LayerMask groundOneWayLayer;
 
     private TilemapManager tilemapManager;
 
@@ -28,6 +29,9 @@ public class GridQueryManager : MonoBehaviour
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+
+        if (groundOneWayLayer.value == 0)
+            groundOneWayLayer = LayerMask.GetMask(GroundOneWay.LayerName);
     }
 
     /// <summary>
@@ -52,6 +56,8 @@ public class GridQueryManager : MonoBehaviour
                 return GetColliderAt(position, colorBlockMergedLayer)?.GetComponent<BlockMerged>()?.colorName;
             case ObjectType.ColorBlockBackground:
                 return GetColliderAt(position, colorBlockBackgroundLayer)?.GetComponent<BlockBackground>()?.colorName;
+            case ObjectType.GroundOneWay:
+                return GetGroundOneWayAt(position)?.colorName;
             default:
                 return null;
         }
@@ -101,6 +107,7 @@ public class GridQueryManager : MonoBehaviour
     {
         if (GetColliderAt(position, colorBlockBackgroundLayer) != null) return ObjectType.ColorBlockBackground;
         if (GetColliderAt(position, colorBlockMergedLayer) != null) return ObjectType.ColorBlockMerged;
+        if (GetGroundOneWayAt(position) != null) return ObjectType.GroundOneWay;
 
         if (tilemap == null) return ObjectType.Empty;
         ColorTilemap colorTilemap = tilemap.GetComponent<ColorTilemap>();
@@ -116,6 +123,24 @@ public class GridQueryManager : MonoBehaviour
     public Collider2D GetColliderAt(Vector3 position, LayerMask layer)
     {
         return Physics2D.OverlapPoint(position, layer);
+    }
+
+    /// <summary>
+    /// 입력: position. 출력: GroundOneWay. 역할: 지정 좌표의 전용 Layer에서 GroundOneWay 컴포넌트를 반환합니다.
+    /// </summary>
+    public GroundOneWay GetGroundOneWayAt(Vector3 position)
+    {
+        Collider2D collider = GetColliderAt(position, groundOneWayLayer);
+        return collider != null ? collider.GetComponentInParent<GroundOneWay>() : null;
+    }
+
+    /// <summary>
+    /// 입력: position, movementDirection. 출력: bool. 역할: 현재 좌표의 GroundOneWay 이탈 규칙에 따라 이동이 허용되는지 반환합니다.
+    /// </summary>
+    public bool CanExitGroundOneWay(Vector3 position, Vector3 movementDirection)
+    {
+        GroundOneWay groundOneWay = GetGroundOneWayAt(position);
+        return groundOneWay == null || groundOneWay.CanExit(movementDirection);
     }
     /// <summary>
     /// 입력: 없음. 출력: bool. 역할: 지정한 조건 또는 현재 상태를 판정합니다.
@@ -146,7 +171,9 @@ public class GridQueryManager : MonoBehaviour
         }
 
         bool isExclusive = tilemap?.GetComponent<ColorTilemap>()?.isExclusive ?? false;
-        bool canMove = GameManager.Instance.IsAvailableBlock(colorName, isExclusive);
+        bool canMove = type == ObjectType.GroundOneWay
+            ? GetGroundOneWayAt(position).CanPlayerEnter()
+            : GameManager.Instance.IsAvailableBlock(colorName, isExclusive);
         return Tuple.Create<bool, string, bool>(canMove, colorName, isExclusive);
     }
 

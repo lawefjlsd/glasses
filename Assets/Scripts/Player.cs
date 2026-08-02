@@ -63,6 +63,12 @@ public class Player : MonoBehaviour
         Vector3 input = GetInputDirection();
         if (input == Vector3.zero) return;
 
+        if (!GridQueryManager.Instance.CanExitGroundOneWay(targetPosition, input))
+        {
+            Debug.Log("[Player] 이동 불가: GroundOneWay 이탈 방향 불일치");
+            return;
+        }
+
         Vector3 newPosition = targetPosition + input;
         GQObjectType typeAtNew = GridQueryManager.Instance.GetObjectTypeAt(newPosition);
 
@@ -76,6 +82,7 @@ public class Player : MonoBehaviour
                 break;
 
             case GQObjectType.Ground:
+            case GQObjectType.GroundOneWay:
             case GQObjectType.ColorBlockMerged:
             case GQObjectType.ColorBlockBackground:
                 TryMoveToColorPosition(newPosition);
