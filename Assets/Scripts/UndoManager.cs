@@ -15,6 +15,9 @@ public class ObjectState
     public bool isActive;
     public int remainingTurns;
     public bool isNewMerged;
+    public MergeColorEffect mergeColorEffect;
+    public long mergeBatchId;
+    public long mergeEventOrder;
     public List<Vector3> pendingSeparationPath = new List<Vector3>();
 }
 
@@ -208,6 +211,9 @@ public class UndoManager : MonoBehaviour
                 mergedScript.pendingSeparationPath = state.pendingSeparationPath == null
                     ? new List<Vector3>()
                     : new List<Vector3>(state.pendingSeparationPath);
+                mergedScript.mergeColorEffect = state.mergeColorEffect;
+                mergedScript.mergeBatchId = state.mergeBatchId;
+                mergedScript.mergeEventOrder = state.mergeEventOrder;
             }
 
 
@@ -232,6 +238,9 @@ public class UndoManager : MonoBehaviour
             isActive = mergedObject.activeSelf,
             remainingTurns = mergedScript.remainingTurns,
             isNewMerged = mergedScript.isJustCreated,
+            mergeColorEffect = mergedScript.mergeColorEffect,
+            mergeBatchId = mergedScript.mergeBatchId,
+            mergeEventOrder = mergedScript.mergeEventOrder,
             pendingSeparationPath = new List<Vector3>(mergedScript.pendingSeparationPath)
         });
     }
@@ -268,7 +277,16 @@ public class UndoManager : MonoBehaviour
                 GQObjectType type = GQObjectType.ColorBlockMerged;
                 int leftTurns = mergedScript.remainingTurns;
                 bool merged = mergedScript.isJustCreated;
-                AddState(turn, currentObject, type, leftTurns, merged, mergedScript.pendingSeparationPath);
+                AddState(
+                    turn,
+                    currentObject,
+                    type,
+                    leftTurns,
+                    merged,
+                    mergedScript.pendingSeparationPath,
+                    mergedScript.mergeColorEffect,
+                    mergedScript.mergeBatchId,
+                    mergedScript.mergeEventOrder);
 
                 Debug.Log($"[UndoManager] SaveCurrentTurn - isJustCreated: {merged}, mergedScript 존재: {mergedScript != null}");
             }
@@ -293,7 +311,10 @@ public class UndoManager : MonoBehaviour
         GQObjectType type,
         int leftTurns = 0,
         bool merged = false,
-        List<Vector3> pendingSeparationPath = null)
+        List<Vector3> pendingSeparationPath = null,
+        MergeColorEffect mergeColorEffect = MergeColorEffect.Add,
+        long mergeBatchId = 0,
+        long mergeEventOrder = 0)
     {
         if (obj == null) return;
 
@@ -304,6 +325,9 @@ public class UndoManager : MonoBehaviour
             isActive = obj.activeSelf,
             remainingTurns = leftTurns,
             isNewMerged = merged,
+            mergeColorEffect = mergeColorEffect,
+            mergeBatchId = mergeBatchId,
+            mergeEventOrder = mergeEventOrder,
             pendingSeparationPath = pendingSeparationPath == null
                 ? new List<Vector3>()
                 : new List<Vector3>(pendingSeparationPath)

@@ -27,6 +27,8 @@ public class GameManager : MonoBehaviour
     private Dictionary<string, Tuple<bool, bool, bool>> forColorMap = new Dictionary<string, Tuple<bool, bool, bool>>();
     private Dictionary<Tuple<bool, bool, bool>, string> revColorMap = new Dictionary<Tuple<bool, bool, bool>, string>();
     private Dictionary<int, int> stagesPerChapter = new Dictionary<int, int>();
+    private long nextMergeBatchId;
+    private long nextMergeEventOrder;
     private bool isGameOver;
     public bool IsGameOver => isGameOver;
 
@@ -228,19 +230,75 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 입력: 없음. 출력: long. 역할: 하나의 병합 처리 단위에 사용할 안정적인 batch 식별자를 반환합니다.
+    /// </summary>
+    public long GetNextMergeBatchId()
+    {
+        return nextMergeBatchId++;
+    }
+
+    /// <summary>
+    /// 입력: 없음. 출력: long. 역할: 활성 병합 이벤트의 replay 순서를 보장하는 증가 이벤트 순서를 반환합니다.
+    /// </summary>
+    public long GetNextMergeEventOrder()
+    {
+        return nextMergeEventOrder++;
+    }
+
+    /// <summary>
     /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
     /// </summary>
     public void RefreshCurrentColorFromMergedBlocks()
     {
+        List<BlockMerged> activeMergedBlocks = new List<BlockMerged>(FindObjectsOfType<BlockMerged>());
+        activeMergedBlocks.RemoveAll(mergedBlock => mergedBlock == null || !mergedBlock.isActiveAndEnabled);
+        activeMergedBlocks.Sort(CompareMergeEvents);
+
         currentColor = "Black";
 
-        foreach (BlockMerged mergedBlock in FindObjectsOfType<BlockMerged>())
+        foreach (BlockMerged mergedBlock in activeMergedBlocks)
         {
-            if (mergedBlock == null || !mergedBlock.isActiveAndEnabled) continue;
-            UpdateCurrentColor(mergedBlock.colorName);
+            currentColor = ApplyMergeColorEffect(currentColor, mergedBlock.colorName, mergedBlock.mergeColorEffect);
+            nextMergeBatchId = System.Math.Max(nextMergeBatchId, mergedBlock.mergeBatchId + 1);
+            nextMergeEventOrder = System.Math.Max(nextMergeEventOrder, mergedBlock.mergeEventOrder + 1);
         }
 
         Debug.Log($"[GameManager] 분리 후 색상 갱신: {currentColor}");
+    }
+
+    /// <summary>
+    /// 입력: left, right. 출력: int. 역할: batch 내 Add 우선, 이후 이벤트 순서로 merged 이벤트의 결정적 replay 순서를 비교합니다.
+    /// </summary>
+    private int CompareMergeEvents(BlockMerged left, BlockMerged right)
+    {
+        int batchComparison = left.mergeBatchId.CompareTo(right.mergeBatchId);
+        if (batchComparison != 0) return batchComparison;
+
+        int effectComparison = left.mergeColorEffect.CompareTo(right.mergeColorEffect);
+        if (effectComparison != 0) return effectComparison;
+
+        return left.mergeEventOrder.CompareTo(right.mergeEventOrder);
+    }
+
+    /// <summary>
+    /// 입력: baseColor, effectColor, colorEffect. 출력: string. 역할: Add는 RGB 성분을 true로, Remove는 false로 덮어쓴 새 현재 색상을 반환합니다.
+    /// </summary>
+    private string ApplyMergeColorEffect(string baseColor, string effectColor, MergeColorEffect colorEffect)
+    {
+        Tuple<bool, bool, bool> baseValue = GetBoolValue(baseColor);
+        Tuple<bool, bool, bool> effectValue = GetBoolValue(effectColor);
+
+        bool red = colorEffect == MergeColorEffect.Add
+            ? baseValue.Item1 || effectValue.Item1
+            : baseValue.Item1 && !effectValue.Item1;
+        bool green = colorEffect == MergeColorEffect.Add
+            ? baseValue.Item2 || effectValue.Item2
+            : baseValue.Item2 && !effectValue.Item2;
+        bool blue = colorEffect == MergeColorEffect.Add
+            ? baseValue.Item3 || effectValue.Item3
+            : baseValue.Item3 && !effectValue.Item3;
+
+        return GetColorString(Tuple.Create(red, green, blue));
     }
 
     /// <summary>

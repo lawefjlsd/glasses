@@ -8,6 +8,10 @@ public class BlockMerged : MonoBehaviour
 {
     public string colorName;
 
+    [HideInInspector] public MergeColorEffect mergeColorEffect = MergeColorEffect.Add;
+    [HideInInspector] public long mergeBatchId;
+    [HideInInspector] public long mergeEventOrder;
+
     [HideInInspector] public int remainingTurns;
     [HideInInspector] public bool isInfinite;
     [HideInInspector] public bool isJustCreated;
@@ -43,12 +47,22 @@ public class BlockMerged : MonoBehaviour
     /// <summary>
     /// 입력: blockPos, blockPrefab, backgroundObject, durationTurns. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
     /// </summary>
-    public void InitializeTimer(Vector3 blockPos, GameObject blockPrefab, GameObject backgroundObject, int durationTurns)
+    public void InitializeTimer(
+        Vector3 blockPos,
+        GameObject blockPrefab,
+        GameObject backgroundObject,
+        int durationTurns,
+        MergeColorEffect colorEffect,
+        long batchId,
+        long eventOrder)
     {
         originBlockPosition = blockPos;
         originBlockPrefab = blockPrefab;
         originBackgroundObject = backgroundObject;
         remainingTurns = durationTurns;
+        mergeColorEffect = colorEffect;
+        mergeBatchId = batchId;
+        mergeEventOrder = eventOrder;
 
         isJustCreated = true;
 

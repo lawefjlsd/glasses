@@ -13,6 +13,7 @@ public class BlockManager : MonoBehaviour
 
     [Header("Settings")]
     public float blockSpeed = 8f;
+    private long activeMergeBatchId = -1;
 
     /// <summary>
     /// 입력: 없음. 출력: 없음. 역할: Unity 초기화 단계에서 싱글턴 또는 필수 참조를 준비합니다.
@@ -80,6 +81,9 @@ public class BlockManager : MonoBehaviour
     /// </summary>
     public IEnumerator ExecutePushChain(Vector3 startPosition, Vector3 input, List<Vector3> path)
     {
+        long previousMergeBatchId = activeMergeBatchId;
+        activeMergeBatchId = GameManager.Instance.GetNextMergeBatchId();
+
         List<Coroutine> moves = new List<Coroutine>();
 
 
@@ -94,6 +98,8 @@ public class BlockManager : MonoBehaviour
 
         foreach (var move in moves)
             yield return move;
+
+        activeMergeBatchId = previousMergeBatchId;
     }
 
 
@@ -102,7 +108,11 @@ public class BlockManager : MonoBehaviour
     /// </summary>
     public IEnumerator ResolveMergesOnBoard()
     {
-        Block[] blocks = FindObjectsOfType<Block>();
+        long previousMergeBatchId = activeMergeBatchId;
+        activeMergeBatchId = GameManager.Instance.GetNextMergeBatchId();
+
+        List<Block> blocks = new List<Block>(FindObjectsOfType<Block>());
+        blocks.Sort((left, right) => left.GetMergeColorEffect().CompareTo(right.GetMergeColorEffect()));
 
         foreach (Block block in blocks)
         {
@@ -118,6 +128,8 @@ public class BlockManager : MonoBehaviour
             if (backgroundCollider != null)
                 yield return StartCoroutine(TryMergeBlock(blockCollider, block.transform.position));
         }
+
+        activeMergeBatchId = previousMergeBatchId;
     }
 
 
@@ -158,11 +170,24 @@ public class BlockManager : MonoBehaviour
                 blockCurrentPosition,
                 blockScript.gameObject,
                 backgroundCollider.gameObject,
-                blockBackgroundScript.mergeDurationTurns
+                blockBackgroundScript.mergeDurationTurns,
+                blockScript.GetMergeColorEffect(),
+                GetActiveMergeBatchId(),
+                GameManager.Instance.GetNextMergeEventOrder()
             );
             UndoManager.Instance.RegisterNewlyMergedObject(merged, mergedScript);
         }
 
-        GameManager.Instance.UpdateCurrentColor(blockScript.colorName);
+        GameManager.Instance.RefreshCurrentColorFromMergedBlocks();
+    }
+
+    /// <summary>
+    /// 입력: 없음. 출력: long. 역할: 실행 중인 병합 batch를 반환하고 독립 병합에는 새 batch를 할당합니다.
+    /// </summary>
+    private long GetActiveMergeBatchId()
+    {
+        return activeMergeBatchId >= 0
+            ? activeMergeBatchId
+            : GameManager.Instance.GetNextMergeBatchId();
     }
 }
