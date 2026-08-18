@@ -73,6 +73,7 @@ public class UndoManager : MonoBehaviour
     private void Update()
     {
         if (player != null && player.IsMovingStatus()) return;
+        if (UIManager.Instance != null && UIManager.Instance.IsOverlayOpen) return;
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
         if (isUndoAnimation) return;
 

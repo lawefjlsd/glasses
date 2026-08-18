@@ -30,6 +30,7 @@ public class ClearUI : MonoBehaviour
     private IEnumerator AutoCloseUI()
     {
         yield return new WaitForSeconds(3);
+        if (SceneFlowManager.Instance != null && SceneFlowManager.Instance.HandleStageClear()) yield break;
         GameManager.Instance.LoadNextStory();
 
     }

@@ -83,6 +83,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        if (UIManager.Instance != null && UIManager.Instance.IsOverlayOpen) return;
         if (Input.GetKeyDown(KeyCode.R))
             RestartCurrentStage();
     }
