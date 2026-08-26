@@ -50,7 +50,7 @@ public class Player : MonoBehaviour
         if (UIManager.Instance != null && UIManager.Instance.IsOverlayOpen) return;
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
         if (UndoManager.Instance != null && UndoManager.Instance.IsUndoRunning) return;
-        if (GridQueryManager.Instance.CheckIfAnyBlockIsSeparating()) return;
+        if (GridQueryManager.Instance != null && GridQueryManager.Instance.CheckIfAnyBlockIsSeparating()) return;
         Move();
     }
 
@@ -60,18 +60,25 @@ public class Player : MonoBehaviour
     /// </summary>
     private void Move()
     {
+        GridQueryManager gridQuery = GridQueryManager.Instance;
+        if (gridQuery == null)
+        {
+            Debug.LogError("[Player] GridQueryManager is missing from the Stage Scene.");
+            enabled = false;
+            return;
+        }
 
         Vector3 input = GetInputDirection();
         if (input == Vector3.zero) return;
 
-        if (!GridQueryManager.Instance.CanExitGroundOneWay(targetPosition, input))
+        if (!gridQuery.CanExitGroundOneWay(targetPosition, input))
         {
             Debug.Log("[Player] 이동 불가: GroundOneWay 이탈 방향 불일치");
             return;
         }
 
         Vector3 newPosition = targetPosition + input;
-        GQObjectType typeAtNew = GridQueryManager.Instance.GetObjectTypeAt(newPosition);
+        GQObjectType typeAtNew = gridQuery.GetObjectTypeAt(newPosition);
 
         if (typeAtNew != GQObjectType.Obstacle && typeAtNew != GQObjectType.Empty)
             UndoManager.Instance.SaveCurrentTurn();
@@ -116,17 +123,24 @@ public class Player : MonoBehaviour
     /// </summary>
     private IEnumerator HandleBlockPush(Vector3 blockPosition, Vector3 input)
     {
+        BlockManager blockManager = BlockManager.Instance;
+        if (blockManager == null)
+        {
+            Debug.LogError("[Player] BlockManager is missing from the Stage Scene.");
+            yield break;
+        }
+
         Collider2D blockCollider = GridQueryManager.Instance.GetColliderAt(blockPosition, GridQueryManager.Instance.colorBlockLayer);
         if (blockCollider == null) yield break;
 
         if (!GridQueryManager.Instance.GetInfoMoveToColorPosition(blockPosition).Item1) yield break;
 
         List<Vector3> path = new List<Vector3>();
-        if (!BlockManager.Instance.CanPushBlockContinuously(blockPosition, input, path)) yield break;
+        if (!blockManager.CanPushBlockContinuously(blockPosition, input, path)) yield break;
 
         isMoving = true;
 
-        Coroutine blockChainMove = StartCoroutine(BlockManager.Instance.ExecutePushChain(blockPosition, input, path));
+        Coroutine blockChainMove = StartCoroutine(blockManager.ExecutePushChain(blockPosition, input, path));
         Coroutine playerMove = StartCoroutine(MoveToPosition(blockPosition));
 
         yield return blockChainMove;
@@ -145,7 +159,15 @@ public class Player : MonoBehaviour
     {
         targetPosition = newPosition;
 
-        yield return StartCoroutine(MovementHelper.Instance.SmoothMoveCoroutine(transform, targetPosition, moveSpeed));
+        MovementHelper movementHelper = MovementHelper.Instance;
+        if (movementHelper == null)
+        {
+            Debug.LogError("[Player] MovementHelper is missing from the Stage Scene.");
+            transform.position = targetPosition;
+            yield break;
+        }
+
+        yield return StartCoroutine(movementHelper.SmoothMoveCoroutine(transform, targetPosition, moveSpeed));
     }
 
 
@@ -212,6 +234,11 @@ public class Player : MonoBehaviour
     /// </summary>
     public void EndStage()
     {
+        if (GameHUDController.Instance != null)
+        {
+            GameHUDController.Instance.ShowClear();
+            return;
+        }
         GameObject obj = Instantiate(clearUIPrefab);
         obj.GetComponent<ClearUI>().Show();
     }

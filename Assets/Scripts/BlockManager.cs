@@ -20,8 +20,18 @@ public class BlockManager : MonoBehaviour
     /// </summary>
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
 
@@ -112,7 +122,7 @@ public class BlockManager : MonoBehaviour
         activeMergeBatchId = GameManager.Instance.GetNextMergeBatchId();
 
         List<Block> blocks = new List<Block>(FindObjectsOfType<Block>());
-        blocks.Sort((left, right) => left.GetMergeColorEffect().CompareTo(right.GetMergeColorEffect()));
+        blocks.Sort((left, right) => left.ColorEffect.CompareTo(right.ColorEffect));
 
         foreach (Block block in blocks)
         {
@@ -171,7 +181,7 @@ public class BlockManager : MonoBehaviour
                 blockScript.gameObject,
                 backgroundCollider.gameObject,
                 blockBackgroundScript.mergeDurationTurns,
-                blockScript.GetMergeColorEffect(),
+                blockScript.ColorEffect,
                 GetActiveMergeBatchId(),
                 GameManager.Instance.GetNextMergeEventOrder()
             );

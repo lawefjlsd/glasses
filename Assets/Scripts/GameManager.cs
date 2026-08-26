@@ -69,12 +69,6 @@ public class GameManager : MonoBehaviour
 
         currentColor = "Black";
 
-        GameUI gameUI = GetComponent<GameUI>();
-        if (gameUI == null)
-            gameUI = gameObject.AddComponent<GameUI>();
-        gameUI.Initialize(this);
-
-
         Debug.Log($"[GameManager] 초기 색상 설정: {currentColor}");
     }
 
@@ -174,7 +168,7 @@ public class GameManager : MonoBehaviour
         if (isGameOver) return;
 
         isGameOver = true;
-        GetComponent<GameUI>()?.ShowGameOver();
+        GameHUDController.Instance?.ShowGameOver();
         Debug.Log("[GameManager] Game Over: ColorBlock overlap detected.");
     }
 

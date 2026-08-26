@@ -28,7 +28,7 @@ Transform:
   m_GameObject: {fileID: 3404307864950473246}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -47,11 +47,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   colorName: Green
+  mergeColorEffect: 0
+  mergeBatchId: 0
+  mergeEventOrder: 0
   remainingTurns: 0
+  isInfinite: 0
   isJustCreated: 0
+  isPendingSeparationPrepared: 0
   originBlockPosition: {x: 0, y: 0, z: 0}
   originBlockPrefab: {fileID: 0}
   originBackgroundObject: {fileID: 0}
+  pendingSeparationPath: []
+  originBlocks: []
+  originBackgrounds: []
 --- !u!212 &1008723051634898454
 SpriteRenderer:
   m_ObjectHideFlags: 0

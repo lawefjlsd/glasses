@@ -13,12 +13,12 @@ using UnityEngine.UI;
 [Serializable]
 public class SaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public int version = CurrentVersion;
     public List<string> clearedStageIds = new List<string>();
     public List<string> unlockedChapterIds = new List<string> { "chapter_1" };
     public string currentProgressStageId = "stage_1_1";
-    public string mainMapSceneName = "Sample_Map";
+    public string mainMapSceneName = "MainMap";
     public Vector3 mainMapPlayerPosition = Vector3.zero;
     public float masterVolume = 1f;
     public List<string> unlockedCutsceneIds = new List<string>();
@@ -35,49 +35,9 @@ public class SaveData
         if (unlockedCutsceneIds == null) unlockedCutsceneIds = new List<string>();
         if (!unlockedChapterIds.Contains("chapter_1")) unlockedChapterIds.Add("chapter_1");
         if (string.IsNullOrEmpty(currentProgressStageId)) currentProgressStageId = "stage_1_1";
-        if (string.IsNullOrEmpty(mainMapSceneName)) mainMapSceneName = "Sample_Map";
+        if (string.IsNullOrEmpty(mainMapSceneName) || mainMapSceneName == "Sample_Map") mainMapSceneName = "MainMap";
         masterVolume = Mathf.Clamp01(masterVolume);
     }
-}
-
-/// <summary>
-/// 스테이지 진행과 컷씬을 Inspector에서 정의하는 데이터 자산입니다.
-/// Resources/ProgressCatalog.asset으로 만들면 런타임이 자동으로 읽습니다.
-/// </summary>
-[CreateAssetMenu(fileName = "ProgressCatalog", menuName = "Glasses/Progress Catalog")]
-public class ProgressCatalog : ScriptableObject
-{
-    public string mainMapSceneName = "Sample_Map";
-    public List<StageDefinition> stages = new List<StageDefinition>();
-    public List<CutsceneDefinition> cutscenes = new List<CutsceneDefinition>();
-}
-
-/// <summary>
-/// 한 스테이지의 진행 규칙을 정의합니다.
-/// </summary>
-[Serializable]
-public class StageDefinition
-{
-    public string stageId;
-    public string sceneName;
-    public int chapter;
-    public int stageNumber;
-    public bool isFinale;
-    public bool isFinalChapterStage;
-    public string firstClearCutsceneId;
-}
-
-/// <summary>
-/// 컷씬의 식별자와 표시 정보를 정의합니다.
-/// </summary>
-[Serializable]
-public class CutsceneDefinition
-{
-    public string cutsceneId;
-    public string displayName;
-    public string triggerStageId;
-    public UnityEngine.Object cutsceneData;
-    public bool isEnding;
 }
 
 /// <summary>
@@ -136,7 +96,8 @@ public class ProgressManager : MonoBehaviour
     public static ProgressManager Instance { get; private set; }
     private readonly List<StageDefinition> stages = new List<StageDefinition>();
     private readonly Dictionary<string, CutsceneDefinition> cutscenes = new Dictionary<string, CutsceneDefinition>();
-    public string MainMapSceneName { get; private set; } = "Sample_Map";
+    public string TitleSceneName { get; private set; } = "TitleScene";
+    public string MainMapSceneName { get; private set; } = "MainMap";
 
     /// <summary>
     /// 입력: 없음. 출력: 없음. 역할: 싱글턴과 진행 카탈로그를 준비합니다.
@@ -157,6 +118,7 @@ public class ProgressManager : MonoBehaviour
         ProgressCatalog catalog = Resources.Load<ProgressCatalog>("ProgressCatalog");
         if (catalog != null)
         {
+            TitleSceneName = string.IsNullOrEmpty(catalog.titleSceneName) ? TitleSceneName : catalog.titleSceneName;
             MainMapSceneName = string.IsNullOrEmpty(catalog.mainMapSceneName) ? MainMapSceneName : catalog.mainMapSceneName;
             stages.AddRange(catalog.stages);
             foreach (CutsceneDefinition cutscene in catalog.cutscenes)
@@ -165,9 +127,9 @@ public class ProgressManager : MonoBehaviour
 
         if (stages.Count == 0)
         {
-            stages.Add(new StageDefinition { stageId = "stage_1_1", sceneName = "Map_1-1", chapter = 1, stageNumber = 1 });
-            stages.Add(new StageDefinition { stageId = "stage_1_2", sceneName = "Map_1-2", chapter = 1, stageNumber = 2, isFinale = true });
-            Debug.LogWarning("[ProgressManager] Resources/ProgressCatalog이 없어 Map_1-1, Map_1-2 기본 진행만 사용합니다.");
+            for (int stageNumber = 1; stageNumber <= 6; stageNumber++)
+                stages.Add(new StageDefinition { stageId = $"stage_1_{stageNumber}", sceneName = $"Map_1-{stageNumber}", chapter = 1, stageNumber = stageNumber, isFinale = stageNumber == 6 });
+            Debug.LogWarning("[ProgressManager] ProgressCatalog is missing; Chapter 1 fallback data is in use.");
         }
     }
 
@@ -180,6 +142,16 @@ public class ProgressManager : MonoBehaviour
     /// 입력: stageId. 출력: StageDefinition. 역할: 식별자에 해당하는 스테이지 정의를 반환합니다.
     /// </summary>
     public StageDefinition GetStageById(string stageId) => stages.Find(stage => stage.stageId == stageId);
+
+    /// <summary>
+    /// 입력: chapter. 출력: 읽기 전용 Stage 목록. 역할: 표현 계층이 Catalog 하드코딩 없이 Chapter의 입구를 조회하게 합니다.
+    /// </summary>
+    public IReadOnlyList<StageDefinition> GetStagesForChapter(int chapter) => stages.FindAll(stage => stage.chapter == chapter).AsReadOnly();
+
+    /// <summary>
+    /// 입력: stageId. 출력: bool. 역할: 저장된 완료 상태를 반환합니다.
+    /// </summary>
+    public bool IsStageCleared(string stageId) => SaveManager.Instance != null && SaveManager.Instance.Data.clearedStageIds.Contains(stageId);
 
     /// <summary>
     /// 입력: stage. 출력: StageDefinition. 역할: 카탈로그 순서상 다음 스테이지를 반환합니다.
@@ -298,15 +270,12 @@ public class AudioManager : MonoBehaviour
 }
 
 /// <summary>
-/// 기본 Title, Settings, Replay, Cutscene 오버레이를 런타임 Canvas로 구성합니다.
+/// Scene에 직렬화된 Title, Settings, Replay, Cutscene 오버레이의 요청을 중계합니다.
 /// </summary>
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
-    public bool IsOverlayOpen => panel != null && panel.activeSelf;
-    private GameObject panel;
-    private Transform content;
-    private Action backAction;
+    public bool IsOverlayOpen => SceneUIRouter.IsOverlayOpen;
 
     /// <summary>
     /// 입력: 없음. 출력: 없음. 역할: 싱글턴과 기본 Canvas를 초기화합니다.
@@ -316,7 +285,6 @@ public class UIManager : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
-        CreateCanvas();
     }
 
     /// <summary>
@@ -325,79 +293,8 @@ public class UIManager : MonoBehaviour
     private void Update()
     {
         if (!Input.GetKeyDown(KeyCode.Escape)) return;
-        if (IsOverlayOpen) { backAction?.Invoke(); return; }
+        if (IsOverlayOpen) { SceneUIRouter.CloseActiveOverlay(); return; }
         SceneFlowManager.Instance.ShowSettings();
-    }
-
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: 최소 기능 UI를 위한 Canvas와 EventSystem을 만듭니다.
-    /// </summary>
-    private void CreateCanvas()
-    {
-        if (FindObjectOfType<EventSystem>() == null)
-        {
-            GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-            DontDestroyOnLoad(eventSystem);
-        }
-
-        GameObject canvasObject = new GameObject("ProgressUI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        canvasObject.transform.SetParent(transform);
-        Canvas canvas = canvasObject.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 1000;
-        CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1280, 720);
-
-        panel = new GameObject("Overlay", typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
-        panel.transform.SetParent(canvasObject.transform, false);
-        RectTransform rect = panel.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(.5f, .5f); rect.anchorMax = new Vector2(.5f, .5f);
-        rect.pivot = new Vector2(.5f, .5f); rect.sizeDelta = new Vector2(560, 0);
-        Image image = panel.GetComponent<Image>(); image.color = new Color(0.04f, 0.05f, 0.08f, .94f);
-        VerticalLayoutGroup layout = panel.GetComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(32, 32, 32, 32); layout.spacing = 14; layout.childAlignment = TextAnchor.MiddleCenter;
-        panel.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-        content = panel.transform;
-        panel.SetActive(false);
-    }
-
-    /// <summary>
-    /// 입력: title. 출력: 없음. 역할: 이전 오버레이를 비우고 제목을 표시합니다.
-    /// </summary>
-    private void BeginPanel(string title)
-    {
-        foreach (Transform child in content) Destroy(child.gameObject);
-        AddLabel(title, 42);
-        panel.SetActive(true);
-    }
-
-    /// <summary>
-    /// 입력: text, size. 출력: 없음. 역할: TextMeshPro 라벨을 추가합니다.
-    /// </summary>
-    private void AddLabel(string text, float size = 22)
-    {
-        GameObject label = new GameObject("Label", typeof(TextMeshProUGUI), typeof(LayoutElement));
-        label.transform.SetParent(content, false);
-        TextMeshProUGUI tmp = label.GetComponent<TextMeshProUGUI>();
-        tmp.text = text; tmp.fontSize = size; tmp.alignment = TextAlignmentOptions.Center; tmp.color = Color.white;
-        label.GetComponent<LayoutElement>().preferredHeight = size + 20;
-    }
-
-    /// <summary>
-    /// 입력: text, action. 출력: 없음. 역할: 의미 기반 명령을 실행할 버튼을 추가합니다.
-    /// </summary>
-    private void AddButton(string text, UnityEngine.Events.UnityAction action)
-    {
-        GameObject buttonObject = new GameObject(text, typeof(Image), typeof(Button), typeof(LayoutElement));
-        buttonObject.transform.SetParent(content, false);
-        buttonObject.GetComponent<Image>().color = new Color(.18f, .3f, .48f, 1f);
-        buttonObject.GetComponent<LayoutElement>().preferredHeight = 52;
-        buttonObject.GetComponent<Button>().onClick.AddListener(action);
-        GameObject label = new GameObject("Text", typeof(TextMeshProUGUI));
-        label.transform.SetParent(buttonObject.transform, false);
-        RectTransform rect = label.GetComponent<RectTransform>(); rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero;
-        TextMeshProUGUI tmp = label.GetComponent<TextMeshProUGUI>(); tmp.text = text; tmp.fontSize = 24; tmp.alignment = TextAlignmentOptions.Center; tmp.color = Color.white;
     }
 
     /// <summary>
@@ -405,12 +302,7 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void ShowTitle()
     {
-        BeginPanel("Glasses (가제)");
-        AddButton("게임 시작", SceneFlowManager.Instance.BeginGame);
-        if (SaveManager.Instance.Data.isGameCompleted) AddButton("돌아보기", ShowReplayList);
-        AddButton("환경설정", () => ShowSettings(true));
-        AddButton("종료", () => Application.Quit());
-        backAction = null;
+        SceneUIRouter.ShowTitle();
     }
 
     /// <summary>
@@ -418,20 +310,7 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void ShowSettings(bool fromTitle)
     {
-        BeginPanel("환경설정");
-        AddLabel("W/A/S/D 이동\nZ Undo\nR Restart\nESC 환경설정", 20);
-        AddLabel("Master Volume", 20);
-        GameObject sliderObject = new GameObject("MasterVolume", typeof(Slider), typeof(LayoutElement));
-        sliderObject.transform.SetParent(content, false);
-        sliderObject.GetComponent<LayoutElement>().preferredHeight = 32;
-        Slider slider = sliderObject.GetComponent<Slider>(); slider.minValue = 0; slider.maxValue = 1; slider.value = SaveManager.Instance.Data.masterVolume;
-        slider.onValueChanged.AddListener(AudioManager.Instance.SetMasterVolume);
-        AddButton(SceneFlowManager.Instance.IsMainMapActive ? "닫기" : "메인 맵으로 가기", () =>
-        {
-            if (SceneFlowManager.Instance.IsMainMapActive) CloseOverlay(); else SceneFlowManager.Instance.GoToMainMap();
-        });
-        AddButton("닫기", () => { if (fromTitle) ShowTitle(); else CloseOverlay(); });
-        backAction = () => { if (fromTitle) ShowTitle(); else CloseOverlay(); };
+        SceneUIRouter.ShowSettings(fromTitle);
     }
 
     /// <summary>
@@ -439,17 +318,7 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void ShowReplayList()
     {
-        BeginPanel("돌아보기");
-        IReadOnlyList<CutsceneDefinition> scenes = ProgressManager.Instance.GetUnlockedCutscenes();
-        if (scenes.Count == 0) AddLabel("해금된 Scene이 없습니다.", 20);
-        foreach (CutsceneDefinition cutscene in scenes)
-        {
-            CutsceneDefinition captured = cutscene;
-            AddButton(string.IsNullOrEmpty(captured.displayName) ? captured.cutsceneId : captured.displayName,
-                () => ShowCutscene(captured, ShowReplayList));
-        }
-        AddButton("뒤로", ShowTitle);
-        backAction = ShowTitle;
+        SceneUIRouter.ShowReview();
     }
 
     /// <summary>
@@ -457,10 +326,7 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void ShowCutscene(CutsceneDefinition cutscene, Action completed)
     {
-        BeginPanel(string.IsNullOrEmpty(cutscene.displayName) ? cutscene.cutsceneId : cutscene.displayName);
-        AddLabel(cutscene.isEnding ? "Ending / Credits" : "Cutscene", 24);
-        AddButton("계속", () => { CloseOverlay(); completed?.Invoke(); });
-        backAction = () => { CloseOverlay(); completed?.Invoke(); };
+        SceneUIRouter.ShowCutscene(cutscene, completed);
     }
 
     /// <summary>
@@ -468,8 +334,7 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void CloseOverlay()
     {
-        panel.SetActive(false);
-        backAction = null;
+        SceneUIRouter.CloseActiveOverlay();
     }
 }
 
@@ -534,8 +399,8 @@ public class SceneFlowManager : MonoBehaviour
         if (!Application.CanStreamedLevelBeLoaded(target))
         {
             StageDefinition fallback = ProgressManager.Instance.GetStageById(SaveManager.Instance.Data.currentProgressStageId);
-            target = fallback != null ? fallback.sceneName : "Map_1-1";
-            Debug.LogWarning("[SceneFlowManager] 메인 맵 씬이 Build Settings에 없어 현재 진행 스테이지로 대체합니다.");
+            target = ProgressManager.Instance.MainMapSceneName;
+            Debug.LogWarning("[SceneFlowManager] Main Map scene is unavailable.");
         }
         SceneManager.LoadScene(target);
     }
@@ -606,7 +471,9 @@ public class SceneFlowManager : MonoBehaviour
     /// </summary>
     private void ReturnToTitle()
     {
-        UIManager.Instance.ShowTitle();
+        string titleScene = ProgressManager.Instance.TitleSceneName;
+        if (Application.CanStreamedLevelBeLoaded(titleScene)) SceneManager.LoadScene(titleScene);
+        else UIManager.Instance.ShowTitle();
     }
 }
 

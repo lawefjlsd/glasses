@@ -27,11 +27,25 @@ public class GridQueryManager : MonoBehaviour
     /// </summary>
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+
+        if (colorBlockLayer.value == 0)
+            colorBlockLayer = LayerMask.GetMask("ColorBlock");
+        if (colorBlockBackgroundLayer.value == 0)
+            colorBlockBackgroundLayer = LayerMask.GetMask("ColorBlockBackground");
+        if (colorBlockMergedLayer.value == 0)
+            colorBlockMergedLayer = LayerMask.GetMask("ColorBlockMerged");
 
         if (groundOneWayLayer.value == 0)
             groundOneWayLayer = LayerMask.GetMask(GroundOneWay.LayerName);
+
+        tilemapManager = FindObjectOfType<TilemapManager>();
     }
 
     /// <summary>
@@ -39,7 +53,12 @@ public class GridQueryManager : MonoBehaviour
     /// </summary>
     private void Start()
     {
-        tilemapManager = FindObjectOfType<TilemapManager>();
+        if (tilemapManager == null) tilemapManager = FindObjectOfType<TilemapManager>();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
 
@@ -69,6 +88,7 @@ public class GridQueryManager : MonoBehaviour
     /// </summary>
     public ObjectType GetObjectTypeAt(Vector3 position)
     {
+        if (tilemapManager == null) return ObjectType.Empty;
         BlockMerged[] mergedBlocks = FindObjectsOfType<BlockMerged>();
         foreach (var merged in mergedBlocks)
         {
@@ -161,6 +181,7 @@ public class GridQueryManager : MonoBehaviour
     /// </summary>
     public Tuple<bool, string, bool> GetInfoMoveToColorPosition(Vector3 position)
     {
+        if (tilemapManager == null) return Tuple.Create<bool, string, bool>(false, null, false);
         Tilemap tilemap = tilemapManager.GetTilemapAtPosition(position);
         ObjectType type = GetGroundTypeAt(position, tilemap);
         string colorName = GetColorNameAtPosition(position, type, tilemap);

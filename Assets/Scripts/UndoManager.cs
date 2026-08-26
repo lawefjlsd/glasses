@@ -100,6 +100,17 @@ public class UndoManager : MonoBehaviour
         StartCoroutine(AnimateUndo(previousTurn));
     }
 
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: UI 등 외부 명령에서 현재 턴을 되돌립니다.
+    /// </summary>
+    public void Undo()
+    {
+        if (player != null && player.IsMovingStatus()) return;
+        if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
+        if (isUndoAnimation) return;
+        ExecuteUndo();
+    }
+
 
     /// <summary>
     /// 입력: previousTurn. 출력: 코루틴 완료. 역할: 저장된 이전 턴으로 오브젝트와 색상을 복원하는 애니메이션을 실행합니다.

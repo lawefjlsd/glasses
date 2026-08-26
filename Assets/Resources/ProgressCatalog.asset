@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7a3056daa0f7dd459e939310a0017ef, type: 3}
+  m_Name: ProgressCatalog
+  m_EditorClassIdentifier: 
+  titleSceneName: TitleScene
+  mainMapSceneName: MainMap
+  stages:
+  - stageId: stage_1_1
+    sceneName: Map_1-1
+    chapter: 1
+    stageNumber: 1
+    isFinale: 0
+    isFinalChapterStage: 0
+    firstClearCutsceneId: 
+  - stageId: stage_1_2
+    sceneName: Map_1-2
+    chapter: 1
+    stageNumber: 2
+    isFinale: 0
+    isFinalChapterStage: 0
+    firstClearCutsceneId: 
+  - stageId: stage_1_3
+    sceneName: Map_1-3
+    chapter: 1
+    stageNumber: 3
+    isFinale: 0
+    isFinalChapterStage: 0
+    firstClearCutsceneId: 
+  - stageId: stage_1_4
+    sceneName: Map_1-4
+    chapter: 1
+    stageNumber: 4
+    isFinale: 0
+    isFinalChapterStage: 0
+    firstClearCutsceneId: 
+  - stageId: stage_1_5
+    sceneName: Map_1-5
+    chapter: 1
+    stageNumber: 5
+    isFinale: 0
+    isFinalChapterStage: 0
+    firstClearCutsceneId: 
+  - stageId: stage_1_6
+    sceneName: Map_1-6
+    chapter: 1
+    stageNumber: 6
+    isFinale: 1
+    isFinalChapterStage: 0
+    firstClearCutsceneId: 
+  cutscenes: []
