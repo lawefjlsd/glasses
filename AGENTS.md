@@ -23,3 +23,9 @@
 1. 수정 후 컴파일 오류 가능성을 확인한다.
 2. Prefab, Scene, Inspector 참조가 깨질 가능성을 확인한다.
 3. 여러 스크립트를 수정한 경우 호출 흐름과 의존성을 구조도로 보여준다.
+
+## Persistent project context
+
+1. Glasses 기획·Stage 로직 관련 작업을 재개할 때 [GLASSES_CONTEXT.md](C:/Users/gue20/Glasses/GLASSES_CONTEXT.md)를 먼저 읽는다. 이전 요약과 검증 기록의 출처는 [STAGE_WORK_CONTEXT.md](C:/Users/gue20/Glasses/STAGE_WORK_CONTEXT.md)다.
+2. 맥락 문서의 사용자 확정 규칙, 현재 구현, 미해결 제안을 구분하고 최신 사용자 지시와 실제 코드를 다시 대조한다. 기록된 제안·할 일은 추가 수정이나 Git/Docs 작업의 자동 승인으로 취급하지 않는다.
+3. 맥락 문서에 있는 역할·스크립트 수정 한도는 명시된 해당 task에만 적용한다. 다른 task의 역할을 임의로 바꾸지 않는다.
