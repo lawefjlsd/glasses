@@ -70,10 +70,6 @@ public static class StageGameplayManagerInstaller
     private static void EnsureGridQueryManager(Scene scene)
     {
         GridQueryManager manager = EnsureManager<GridQueryManager>(scene, "GridQueryManager");
-        manager.colorBlockLayer = LayerMask.GetMask("ColorBlock");
-        manager.colorBlockBackgroundLayer = LayerMask.GetMask("ColorBlockBackground");
-        manager.colorBlockMergedLayer = LayerMask.GetMask("ColorBlockMerged");
-        manager.groundOneWayLayer = LayerMask.GetMask(GroundOneWay.LayerName);
         EditorUtility.SetDirty(manager);
     }
 

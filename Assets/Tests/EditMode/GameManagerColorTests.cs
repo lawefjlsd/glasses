@@ -1,47 +1,31 @@
-using System.Reflection;
 using NUnit.Framework;
-using UnityEngine;
 
+/// <summary>
+/// StageController가 사용하는 순수 색상 규칙을 검증합니다.
+/// </summary>
 public class GameManagerColorTests
 {
-    private GameObject gameManagerObject;
-    private GameManager gameManager;
-
-    [SetUp]
-    public void SetUp()
-    {
-        gameManagerObject = new GameObject("GameManagerTest");
-        gameManager = gameManagerObject.AddComponent<GameManager>();
-
-        typeof(GameManager)
-            .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic)
-            .Invoke(gameManager, null);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        Object.DestroyImmediate(gameManagerObject);
-    }
-
+    /// <summary>입력: 없음. 출력: 없음. 역할: Add 효과가 RGB 성분을 누적하는지 검증합니다.</summary>
     [Test]
-    public void UpdateCurrentColor_CombinesPrimaryColors()
+    public void ApplyMergeEffect_CombinesPrimaryColors()
     {
-        gameManager.UpdateCurrentColor("Red");
-        gameManager.UpdateCurrentColor("Blue");
-
-        Assert.That(GameManager.currentColor, Is.EqualTo("Magenta"));
+        Assert.That(StageColorRules.TryApplyMergeEffect("Black", "Red", MergeColorEffect.Add, out string red, out _), Is.True);
+        Assert.That(StageColorRules.TryApplyMergeEffect(red, "Blue", MergeColorEffect.Add, out string magenta, out _), Is.True);
+        Assert.That(magenta, Is.EqualTo("Magenta"));
     }
 
+    /// <summary>입력: 없음. 출력: 없음. 역할: 일반·exclusive Bottom의 포함 색상 판정을 검증합니다.</summary>
     [Test]
-    public void IsAvailableBlock_RespectsNormalAndExclusiveTiles()
+    public void TryIsAvailable_RespectsNormalAndExclusiveBottom()
     {
-        Assert.That(gameManager.IsAvailableBlock("Red", false), Is.False);
-        Assert.That(gameManager.IsAvailableBlock("Red", true), Is.True);
+        Assert.That(StageColorRules.TryIsAvailable("Black", "Red", false, out bool normalUnavailable, out _), Is.True);
+        Assert.That(normalUnavailable, Is.False);
+        Assert.That(StageColorRules.TryIsAvailable("Black", "Red", true, out bool exclusiveAvailable, out _), Is.True);
+        Assert.That(exclusiveAvailable, Is.True);
 
-        gameManager.UpdateCurrentColor("Red");
-
-        Assert.That(gameManager.IsAvailableBlock("Red", false), Is.True);
-        Assert.That(gameManager.IsAvailableBlock("Red", true), Is.False);
+        Assert.That(StageColorRules.TryIsAvailable("Red", "Red", false, out bool normalAvailable, out _), Is.True);
+        Assert.That(normalAvailable, Is.True);
+        Assert.That(StageColorRules.TryIsAvailable("Red", "Red", true, out bool exclusiveUnavailable, out _), Is.True);
+        Assert.That(exclusiveUnavailable, Is.False);
     }
 }

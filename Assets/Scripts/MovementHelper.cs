@@ -7,6 +7,7 @@ using UnityEngine;
 public class MovementHelper : MonoBehaviour
 {
     public static MovementHelper Instance { get; private set; }
+    public float defaultMoveSpeed = 8f;
 
     /// <summary>
     /// 입력: 없음. 출력: 없음. 역할: Unity 초기화 단계에서 싱글턴 또는 필수 참조를 준비합니다.

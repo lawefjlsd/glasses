@@ -1,157 +1,189 @@
-using System.Collections;
-using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 
+/// <summary>
+/// GroundOneWay 규칙이 Physics·Coroutine 없이 StageBoard 계획 계산에 적용되는지 검증합니다.
+/// </summary>
 public class GroundOneWayTests
 {
-    private GameObject gameManagerObject;
-    private GameObject tilemapManagerObject;
-    private GameObject gridQueryObject;
-    private GameObject blockManagerObject;
-    private GameObject separationManagerObject;
-
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: 테스트마다 GameManager와 이동 규칙 관리자 오브젝트를 준비합니다.
-    /// </summary>
-    [SetUp]
-    public void SetUp()
-    {
-        gameManagerObject = new GameObject("GameManagerTest");
-        GameManager gameManager = gameManagerObject.AddComponent<GameManager>();
-        typeof(GameManager).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(gameManager, null);
-
-        tilemapManagerObject = new GameObject("TilemapManagerTest");
-        TilemapManager tilemapManager = tilemapManagerObject.AddComponent<TilemapManager>();
-        tilemapManager.tilemaps = new UnityEngine.Tilemaps.Tilemap[0];
-
-        gridQueryObject = new GameObject("GridQueryManagerTest");
-        GridQueryManager gridQueryManager = gridQueryObject.AddComponent<GridQueryManager>();
-        gridQueryManager.groundOneWayLayer = 1 << LayerMask.NameToLayer(GroundOneWay.LayerName);
-        typeof(GridQueryManager).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(gridQueryManager, null);
-
-        blockManagerObject = new GameObject("BlockManagerTest");
-        blockManagerObject.AddComponent<BlockManager>();
-
-        separationManagerObject = new GameObject("SeparationManagerTest");
-        separationManagerObject.AddComponent<SeparationManager>();
-    }
-
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: 테스트 중 생성한 오브젝트를 제거합니다.
-    /// </summary>
-    [TearDown]
-    public void TearDown()
-    {
-        Object.DestroyImmediate(separationManagerObject);
-        Object.DestroyImmediate(blockManagerObject);
-        Object.DestroyImmediate(gridQueryObject);
-        Object.DestroyImmediate(tilemapManagerObject);
-        Object.DestroyImmediate(gameManagerObject);
-
-        foreach (GroundOneWay groundOneWay in Object.FindObjectsOfType<GroundOneWay>())
-            Object.DestroyImmediate(groundOneWay.gameObject);
-
-        foreach (Block block in Object.FindObjectsOfType<Block>())
-            Object.DestroyImmediate(block.gameObject);
-
-        foreach (BlockMerged merged in Object.FindObjectsOfType<BlockMerged>())
-            Object.DestroyImmediate(merged.gameObject);
-    }
-
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: 현재 색상에 포함된 GroundOneWay만 플레이어 진입을 허용하는지 검증합니다.
-    /// </summary>
+    /// <summary>입력: 없음. 출력: 없음. 역할: 순수 색상 규칙이 GroundOneWay 진입 색상 포함 여부를 판정하는지 검증합니다.</summary>
     [Test]
-    public void CanPlayerEnter_RequiresMatchingCurrentColor()
+    public void ColorRule_RequiresMatchingCurrentColor()
     {
-        GroundOneWay groundOneWay = CreateGroundOneWay(Vector3.zero, "Blue", GroundOneWay.ExitDirection.W);
-
-        Assert.That(GridQueryManager.Instance.GetInfoMoveToColorPosition(Vector3.zero).Item1, Is.False);
-
-        GameManager.Instance.UpdateCurrentColor("Blue");
-
-        Assert.That(GridQueryManager.Instance.GetInfoMoveToColorPosition(Vector3.zero).Item1, Is.True);
+        Assert.That(StageColorRules.TryIsAvailable("Black", "Blue", false, out bool unavailable, out _), Is.True);
+        Assert.That(unavailable, Is.False);
+        Assert.That(StageColorRules.TryIsAvailable("Blue", "Blue", false, out bool available, out _), Is.True);
+        Assert.That(available, Is.True);
     }
 
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: GroundOneWay가 지정 방향 이탈만 허용하는지 검증합니다.
-    /// </summary>
+    /// <summary>입력: 없음. 출력: 없음. 역할: Pushable chain의 GO 이탈 방향 불일치가 전체 계획을 실패시키는지 검증합니다.</summary>
     [Test]
-    public void CanExit_OnlyAllowsConfiguredDirection()
+    public void PushPlan_FailsWhenSourceGroundOneWayExitIsBlocked()
     {
-        GroundOneWay groundOneWay = CreateGroundOneWay(Vector3.zero, "Blue", GroundOneWay.ExitDirection.W);
+        StageBoardSnapshot snapshot = BaseBoard();
+        snapshot.entities.Add("block", Pushable("block", new StageCell(0, 0)));
+        snapshot.staticCells[new StageCell(0, 0)] = GroundOneWayCell(GroundOneWay.ExitDirection.W);
+        snapshot.staticCells.Add(new StageCell(1, 0), GroundCell());
 
-        Assert.That(groundOneWay.CanExit(Vector3.up), Is.True);
-        Assert.That(groundOneWay.CanExit(Vector3.right), Is.False);
+        bool success = BlockManager.TryCreatePushPlanPure(
+            StageBoard.FromSnapshot(snapshot).CreateWorkingCopy(),
+            new StageCell(0, 0),
+            new StageCell(1, 0),
+            "player",
+            out PushPlan plan,
+            out _);
+
+        Assert.That(success, Is.False);
+        Assert.That(plan.movements, Is.Empty);
     }
 
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: Chain Push에 이탈 불가 GroundOneWay 블록이 있으면 전체 경로가 실패하는지 검증합니다.
-    /// </summary>
+    /// <summary>입력: 없음. 출력: 없음. 역할: due Separation이 GO 이탈 제한에 막히면 Deferred이며 예약을 남기지 않는지 검증합니다.</summary>
     [Test]
-    public void CanPushBlockContinuously_FailsWithoutPartialPathWhenBlockCannotExitGroundOneWay()
+    public void CreateSchedule_DefersWhenChainCannotExitGroundOneWay()
     {
-        CreateGroundOneWay(Vector3.zero, "Blue", GroundOneWay.ExitDirection.W);
-        CreateBlock(Vector3.zero);
-        Physics2D.SyncTransforms();
+        StageBoardSnapshot snapshot = BaseBoard();
+        snapshot.entities.Add("merged", Merged("merged", new StageCell(0, 0), new StageCell(1, 0)));
+        snapshot.entities.Add("origin-block", InactivePushable("origin-block", new StageCell(1, 0)));
+        snapshot.entities.Add("origin-background", InactiveBackground("origin-background", new StageCell(0, 0)));
+        snapshot.entities.Add("blocker", Pushable("blocker", new StageCell(1, 0)));
+        snapshot.staticCells.Add(new StageCell(1, 0), GroundOneWayCell(GroundOneWay.ExitDirection.W));
+        snapshot.staticCells.Add(new StageCell(2, 0), GroundCell());
 
-        var path = new System.Collections.Generic.List<Vector3>();
-        bool canPush = BlockManager.Instance.CanPushBlockContinuously(Vector3.zero, Vector3.right, path);
+        GameObject managerObject = new GameObject("SeparationManager");
+        SeparationManager manager = managerObject.AddComponent<SeparationManager>();
+        SeparationSchedule schedule = manager.CreateSchedule(snapshot, 1);
 
-        Assert.That(canPush, Is.False);
-        Assert.That(path, Is.Empty);
+        Assert.That(schedule.isValid, Is.True);
+        Assert.That(schedule.plans, Has.Count.EqualTo(1));
+        Assert.That(schedule.plans[0].isDeferred, Is.True);
+        Assert.That(schedule.reservedCells, Is.Empty);
+        Assert.That(snapshot.entities["merged"].isActive, Is.True);
+        Object.DestroyImmediate(managerObject);
     }
 
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: Separation 압력이 GroundOneWay 이탈 규칙에 막히면 remainingTurns가 1로 유지되는지 검증합니다.
-    /// </summary>
+    /// <summary>확정된 remainingTurns가 0이면 절대 Turn 메타데이터가 달라도 Separation을 예약하는지 검증합니다.</summary>
     [Test]
-    public void TickMergedBlocksTurn_DefersSeparationWhenGroundOneWayBlocksPushDirection()
+    public void CreateSchedule_SchedulesWhenCommittedRemainingTurnsReachZero()
     {
-        CreateGroundOneWay(Vector3.right, "Blue", GroundOneWay.ExitDirection.W);
-        CreateBlock(Vector3.right);
-
-        GameObject mergedObject = new GameObject("MergedBlockTest");
-        BlockMerged merged = mergedObject.AddComponent<BlockMerged>();
-        merged.remainingTurns = 1;
-        merged.originBlockPosition = Vector3.right;
+        StageBoardSnapshot snapshot = BaseBoard();
+        StageEntityState merged = Merged("merged", new StageCell(0, 0), new StageCell(1, 0));
+        merged.remainingTurns = 0;
         merged.isJustCreated = false;
-        Physics2D.SyncTransforms();
+        merged.separationDueTurn = 99;
+        snapshot.entities.Add("merged", merged);
+        snapshot.entities.Add("origin-block", InactivePushable("origin-block", new StageCell(1, 0)));
+        snapshot.entities.Add("origin-background", InactiveBackground("origin-background", new StageCell(0, 0)));
 
-        IEnumerator tick = SeparationManager.Instance.TickMergedBlocksTurn();
-        while (tick.MoveNext()) { }
+        GameObject managerObject = new GameObject("SeparationManager");
+        SeparationManager manager = managerObject.AddComponent<SeparationManager>();
+        SeparationSchedule schedule = manager.CreateSchedule(snapshot, 1);
 
-        Assert.That(merged.remainingTurns, Is.EqualTo(1));
+        Assert.That(schedule.isValid, Is.True);
+        Assert.That(schedule.plans, Has.Count.EqualTo(1));
+        Assert.That(schedule.plans[0].isDeferred, Is.False);
+        Object.DestroyImmediate(managerObject);
     }
 
-    /// <summary>
-    /// 입력: position, colorName, exitDirection. 출력: GroundOneWay. 역할: 전용 Layer와 Trigger Collider를 갖는 GroundOneWay 테스트 오브젝트를 생성합니다.
-    /// </summary>
-    private GroundOneWay CreateGroundOneWay(Vector3 position, string colorName, GroundOneWay.ExitDirection exitDirection)
+    /// <summary>생성 직후 merged는 remainingTurns가 0이어도 같은 Turn에 즉시 분리하지 않는지 검증합니다.</summary>
+    [Test]
+    public void CreateSchedule_DoesNotSeparateJustCreatedMerged()
     {
-        GameObject groundOneWayObject = new GameObject("GroundOneWayTest");
-        groundOneWayObject.layer = LayerMask.NameToLayer(GroundOneWay.LayerName);
-        groundOneWayObject.transform.position = position;
+        StageBoardSnapshot snapshot = BaseBoard();
+        StageEntityState merged = Merged("merged", new StageCell(0, 0), new StageCell(1, 0));
+        merged.remainingTurns = 0;
+        merged.isJustCreated = true;
+        merged.createdTurnId = 1;
+        merged.separationDueTurn = 1;
+        snapshot.entities.Add("merged", merged);
+        snapshot.entities.Add("origin-block", InactivePushable("origin-block", new StageCell(1, 0)));
+        snapshot.entities.Add("origin-background", InactiveBackground("origin-background", new StageCell(0, 0)));
 
-        BoxCollider2D collider = groundOneWayObject.AddComponent<BoxCollider2D>();
-        collider.isTrigger = true;
+        GameObject managerObject = new GameObject("SeparationManager");
+        SeparationManager manager = managerObject.AddComponent<SeparationManager>();
+        SeparationSchedule schedule = manager.CreateSchedule(snapshot, 1);
 
-        GroundOneWay groundOneWay = groundOneWayObject.AddComponent<GroundOneWay>();
-        groundOneWay.colorName = colorName;
-        groundOneWay.exitDirection = exitDirection;
-        return groundOneWay;
+        Assert.That(schedule.isValid, Is.True);
+        Assert.That(schedule.plans, Is.Empty);
+        Object.DestroyImmediate(managerObject);
     }
 
-    /// <summary>
-    /// 입력: position. 출력: Block. 역할: ColorBlock Layer와 Collider를 갖는 테스트 블록을 생성합니다.
-    /// </summary>
-    private Block CreateBlock(Vector3 position)
+    /// <summary>입력: 없음. 출력: 없음. 역할: Separation owner는 자신의 예약만 통과하고 Player owner는 차단되는지 검증합니다.</summary>
+    [Test]
+    public void Reservations_AllowOnlySeparationOwner()
     {
-        GameObject blockObject = new GameObject("BlockTest");
-        blockObject.layer = LayerMask.NameToLayer("ColorBlock");
-        blockObject.transform.position = position;
-        blockObject.AddComponent<BoxCollider2D>();
-        return blockObject.AddComponent<Block>();
+        StageBoardSnapshot snapshot = BaseBoard();
+        snapshot.entities.Add("block", Pushable("block", new StageCell(0, 0)));
+        snapshot.staticCells.Add(new StageCell(0, 0), GroundCell());
+        snapshot.staticCells.Add(new StageCell(1, 0), GroundCell());
+        StageBoardWorkingCopy board = StageBoard.FromSnapshot(snapshot).CreateWorkingCopy();
+        board.ApplyReservations(new[] { new StageCell(1, 0) }, new[] { "block" }, "separation:merged");
+
+        Assert.That(BlockManager.TryCreatePushPlanPure(board, new StageCell(0, 0), new StageCell(1, 0), "player", out _, out _), Is.False);
+        Assert.That(BlockManager.TryCreatePushPlanPure(board, new StageCell(0, 0), new StageCell(1, 0), "separation:merged", out PushPlan plan, out _), Is.True);
+        Assert.That(plan.movements, Has.Count.EqualTo(1));
+    }
+
+    private static StageBoardSnapshot BaseBoard()
+    {
+        return new StageBoardSnapshot { currentColor = "White" };
+    }
+
+    private static StageEntityState Pushable(string id, StageCell cell)
+    {
+        return new StageEntityState
+        {
+            entityId = id,
+            kind = StageEntityKind.Block,
+            cell = cell,
+            isActive = true,
+            profile = new StageObjectProfile { zone = StageZone.Top, movement = MovementCapability.Pushable, occupancy = OccupancyType.Solid }
+        };
+    }
+
+    private static StageEntityState InactivePushable(string id, StageCell cell)
+    {
+        StageEntityState state = Pushable(id, cell);
+        state.isActive = false;
+        return state;
+    }
+
+    private static StageEntityState InactiveBackground(string id, StageCell cell)
+    {
+        return new StageEntityState
+        {
+            entityId = id,
+            kind = StageEntityKind.BlockBackground,
+            cell = cell,
+            isActive = false,
+            profile = new StageObjectProfile { zone = StageZone.Bottom, movement = MovementCapability.Static, occupancy = OccupancyType.Surface }
+        };
+    }
+
+    private static StageEntityState Merged(string id, StageCell cell, StageCell origin)
+    {
+        return new StageEntityState
+        {
+            entityId = id,
+            kind = StageEntityKind.BlockMerged,
+            cell = cell,
+            isActive = true,
+            remainingTurns = 1,
+            createdTurnId = 0,
+            separationDueTurn = 1,
+            originBlockCell = origin,
+            originBlockEntityId = "origin-block",
+            originBackgroundEntityId = "origin-background",
+            profile = new StageObjectProfile { zone = StageZone.Bottom, movement = MovementCapability.Static, occupancy = OccupancyType.Surface }
+        };
+    }
+
+    private static StageCellStaticState GroundCell()
+    {
+        return new StageCellStaticState { bottomGroundKind = StageBottomGroundKind.Ground, colorName = "White" };
+    }
+
+    private static StageCellStaticState GroundOneWayCell(GroundOneWay.ExitDirection direction)
+    {
+        return new StageCellStaticState { bottomGroundKind = StageBottomGroundKind.GroundOneWay, colorName = "White", exitDirection = direction };
     }
 }

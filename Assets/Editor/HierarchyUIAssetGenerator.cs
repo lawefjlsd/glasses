@@ -282,10 +282,6 @@ public static class HierarchyUIAssetGenerator
                 manager = managerObject.GetComponent<GridQueryManager>();
             }
 
-            manager.colorBlockLayer = LayerMask.GetMask("ColorBlock");
-            manager.colorBlockBackgroundLayer = LayerMask.GetMask("ColorBlockBackground");
-            manager.colorBlockMergedLayer = LayerMask.GetMask("ColorBlockMerged");
-            manager.groundOneWayLayer = LayerMask.GetMask(GroundOneWay.LayerName);
             EditorUtility.SetDirty(manager);
             EditorSceneManager.SaveScene(scene);
             if (!opened) EditorSceneManager.CloseScene(scene, true);

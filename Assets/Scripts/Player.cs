@@ -1,191 +1,51 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Tilemaps;
-using GQObjectType = GridQueryManager.ObjectType;
-
 
 /// <summary>
-/// 플레이어 입력, 이동, 블록 밀기를 처리합니다.
+/// StageTurnController에 방향 입력만 전달하는 플레이어 표현 컴포넌트입니다.
 /// </summary>
 public class Player : MonoBehaviour
 {
-
-    private bool isMoving = false;
-    /// <summary>
-    /// 입력: 없음. 출력: bool. 역할: 지정한 조건 또는 현재 상태를 판정합니다.
-    /// </summary>
-    public bool IsMovingStatus() => isMoving;
-    private Vector3 targetPosition;
-
-    private float lastInputTime = 0f;
-    private float keyHoldTime = 0f;
+    private float lastInputTime;
+    private float keyHoldTime;
     private Vector3 lastInput = Vector3.zero;
-
+    private StageTurnController stageTurnController;
 
     public Transform initialPosition;
     public GameObject clearUIPrefab;
     public float moveSpeed = 5f;
-
-
     public float inputCooldown = 0.2f;
     [SerializeField] private float inputHoldDelay = 0.3f;
 
+    public bool IsMovingStatus() => stageTurnController != null && stageTurnController.IsProcessingTurn;
 
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: Unity 시작 단계에서 런타임 상태와 참조를 초기화합니다.
-    /// </summary>
     private void Start()
     {
-        transform.position = initialPosition.position;
-        targetPosition = transform.position;
+        if (initialPosition != null) transform.position = initialPosition.position;
+        stageTurnController = FindObjectOfType<StageTurnController>();
+        if (stageTurnController == null)
+        {
+            Debug.LogError("[Player] StageTurnController is required for Stage input.");
+            enabled = false;
+        }
     }
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: 매 프레임 입력과 화면 또는 게임 상태를 갱신합니다.
-    /// </summary>
+
     private void Update()
     {
-        if (IsMovingStatus()) return;
+        if (stageTurnController == null || !stageTurnController.IsRuntimeActive) return;
         if (UIManager.Instance != null && UIManager.Instance.IsOverlayOpen) return;
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
-        if (UndoManager.Instance != null && UndoManager.Instance.IsUndoRunning) return;
-        if (GridQueryManager.Instance != null && GridQueryManager.Instance.CheckIfAnyBlockIsSeparating()) return;
-        Move();
-    }
+        if (stageTurnController.IsProcessingTurn) return;
 
-
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할: 이동 또는 이동 완료 후속 처리를 수행합니다.
-    /// </summary>
-    private void Move()
-    {
-        GridQueryManager gridQuery = GridQueryManager.Instance;
-        if (gridQuery == null)
+        if (Input.GetKeyDown(KeyCode.Z))
         {
-            Debug.LogError("[Player] GridQueryManager is missing from the Stage Scene.");
-            enabled = false;
+            stageTurnController.RequestUndo();
             return;
         }
 
         Vector3 input = GetInputDirection();
-        if (input == Vector3.zero) return;
-
-        if (!gridQuery.CanExitGroundOneWay(targetPosition, input))
-        {
-            Debug.Log("[Player] 이동 불가: GroundOneWay 이탈 방향 불일치");
-            return;
-        }
-
-        Vector3 newPosition = targetPosition + input;
-        GQObjectType typeAtNew = gridQuery.GetObjectTypeAt(newPosition);
-
-        if (typeAtNew != GQObjectType.Obstacle && typeAtNew != GQObjectType.Empty)
-            UndoManager.Instance.SaveCurrentTurn();
-
-        switch (typeAtNew)
-        {
-            case GQObjectType.ColorBlock:
-                StartCoroutine(HandleBlockPush(newPosition, input));
-                break;
-
-            case GQObjectType.Ground:
-            case GQObjectType.GroundOneWay:
-            case GQObjectType.ColorBlockMerged:
-            case GQObjectType.ColorBlockBackground:
-                TryMoveToColorPosition(newPosition);
-                break;
-
-            default:
-                Debug.Log("[Player] 이동 불가: 막혀있거나 빈 칸");
-                break;
-        }
-
+        if (input != Vector3.zero) stageTurnController.RequestMove(input);
     }
 
-
-    /// <summary>
-    /// 입력: position. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
-    /// </summary>
-    private void TryMoveToColorPosition(Vector3 position)
-    {
-        var infoMove = GridQueryManager.Instance.GetInfoMoveToColorPosition(position);
-
-        if (infoMove.Item1)
-            StartCoroutine(MoveToPositionAndAdvanceTurn(position));
-        else
-            Debug.Log($"[Player] 이동 불가: 색상 불일치 ({infoMove.Item2})");
-    }
-
-
-    /// <summary>
-    /// 입력: blockPosition, input. 출력: 코루틴 완료. 역할:  필요한 게임 로직을 처리합니다.
-    /// </summary>
-    private IEnumerator HandleBlockPush(Vector3 blockPosition, Vector3 input)
-    {
-        BlockManager blockManager = BlockManager.Instance;
-        if (blockManager == null)
-        {
-            Debug.LogError("[Player] BlockManager is missing from the Stage Scene.");
-            yield break;
-        }
-
-        Collider2D blockCollider = GridQueryManager.Instance.GetColliderAt(blockPosition, GridQueryManager.Instance.colorBlockLayer);
-        if (blockCollider == null) yield break;
-
-        if (!GridQueryManager.Instance.GetInfoMoveToColorPosition(blockPosition).Item1) yield break;
-
-        List<Vector3> path = new List<Vector3>();
-        if (!blockManager.CanPushBlockContinuously(blockPosition, input, path)) yield break;
-
-        isMoving = true;
-
-        Coroutine blockChainMove = StartCoroutine(blockManager.ExecutePushChain(blockPosition, input, path));
-        Coroutine playerMove = StartCoroutine(MoveToPosition(blockPosition));
-
-        yield return blockChainMove;
-        yield return playerMove;
-
-        yield return StartCoroutine(GameManager.Instance.OnTurnAdvanced());
-
-        isMoving = false;
-    }
-
-
-    /// <summary>
-    /// 입력: newPosition. 출력: 코루틴 완료. 역할: 이동 또는 이동 완료 후속 처리를 수행합니다.
-    /// </summary>
-    private IEnumerator MoveToPosition(Vector3 newPosition)
-    {
-        targetPosition = newPosition;
-
-        MovementHelper movementHelper = MovementHelper.Instance;
-        if (movementHelper == null)
-        {
-            Debug.LogError("[Player] MovementHelper is missing from the Stage Scene.");
-            transform.position = targetPosition;
-            yield break;
-        }
-
-        yield return StartCoroutine(movementHelper.SmoothMoveCoroutine(transform, targetPosition, moveSpeed));
-    }
-
-
-    /// <summary>
-    /// 입력: newPosition. 출력: 코루틴 완료. 역할: 이동 또는 이동 완료 후속 처리를 수행합니다.
-    /// </summary>
-    private IEnumerator MoveToPositionAndAdvanceTurn(Vector3 newPosition)
-    {
-        isMoving = true;
-        yield return StartCoroutine(MoveToPosition(newPosition));
-        yield return StartCoroutine(GameManager.Instance.OnTurnAdvanced());
-        isMoving = false;
-    }
-
-
-    /// <summary>
-    /// 입력: 없음. 출력: Vector3. 역할: 지정한 조건에 맞는 정보를 조회해 반환합니다.
-    /// </summary>
     private Vector3 GetInputDirection()
     {
         Vector3 input = Vector3.zero;
@@ -194,14 +54,12 @@ public class Player : MonoBehaviour
         else if (Input.GetKey(KeyCode.A)) input = Vector3.left;
         else if (Input.GetKey(KeyCode.D)) input = Vector3.right;
 
-
         if (input == Vector3.zero)
         {
             keyHoldTime = 0f;
             lastInput = Vector3.zero;
             return Vector3.zero;
         }
-
 
         if (input != lastInput)
         {
@@ -210,7 +68,6 @@ public class Player : MonoBehaviour
             lastInputTime = Time.time;
             return input;
         }
-
 
         keyHoldTime += Time.deltaTime;
         if (keyHoldTime >= inputHoldDelay && Time.time - lastInputTime >= inputCooldown)
@@ -221,26 +78,4 @@ public class Player : MonoBehaviour
 
         return Vector3.zero;
     }
-
-
-    /// <summary>
-    /// 입력: pos. 출력: 없음. 역할: 저장된 상태 또는 지정 상태로 값을 복원합니다.
-    /// </summary>
-    public void ResetTargetPosition(Vector3 pos) => targetPosition = pos;
-
-
-    /// <summary>
-    /// 입력: 없음. 출력: 없음. 역할:  필요한 게임 로직을 처리합니다.
-    /// </summary>
-    public void EndStage()
-    {
-        if (GameHUDController.Instance != null)
-        {
-            GameHUDController.Instance.ShowClear();
-            return;
-        }
-        GameObject obj = Instantiate(clearUIPrefab);
-        obj.GetComponent<ClearUI>().Show();
-    }
-
 }
