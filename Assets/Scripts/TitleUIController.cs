@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>Title Scene의 직렬화된 Button과 Panel을 연결합니다.</summary>
+/// <summary>Title Scene의 직렬화된 Button과 Panel을 연결</summary>
 public class TitleUIController : MonoBehaviour
 {
     [SerializeField] private GameObject titlePanel;

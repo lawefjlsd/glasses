@@ -1,13 +1,12 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>Scene의 동일 Controller 생명주기에서 초기 Merge 검사를 한 번만 허용합니다.</summary>
+/// <summary>Scene의 동일 Controller lifecycle에서 초기 Merge 검사를 한 번 함</summary>
 public sealed class InitialMergeCheckGuard
 {
     private bool started;
     public int Count { get; private set; }
 
-    /// <summary>입력: 없음. 출력: 최초 실행이면 true. 역할: 초기 Merge 검사 시작 횟수를 최대 1로 제한합니다.</summary>
     public bool TryBegin()
     {
         if (started) return false;
@@ -55,15 +54,13 @@ public class StageTurnController : MonoBehaviour
             enabled = false;
         }
     }
-
-    /// <summary>입력: 없음. 출력: 초기화 완료. 역할: 다른 Component의 Start가 끝난 뒤 Scene 초기 Merge 검사를 한 번 실행합니다.</summary>
     private IEnumerator Start()
     {
         yield return null;
         yield return StartCoroutine(RunInitialMergeCheckOnce());
     }
 
-    /// <summary>입력: 없음. 출력: 초기 Merge Commit 완료. 역할: 입력과 Undo/Turn 소비 없이 초기 Board를 한 번 정규화합니다.</summary>
+    /// <summary> 입력과 Undo/Turn 소비 없이 초기 Board를 한 번 정규화</summary>
     private IEnumerator RunInitialMergeCheckOnce()
     {
         if (!TryBeginInitialMergeCheck()) yield break;
@@ -105,7 +102,6 @@ public class StageTurnController : MonoBehaviour
         }
     }
 
-    /// <summary>입력: 없음. 출력: 최초 호출 여부. 역할: 동일 Controller 생명주기에서 초기 Merge 검사를 정확히 한 번만 허용합니다.</summary>
     private bool TryBeginInitialMergeCheck()
     {
         if (!initialMergeCheckGuard.TryBegin())
@@ -143,7 +139,7 @@ public class StageTurnController : MonoBehaviour
         return true;
     }
 
-    /// <summary>입력: 없음. 출력: bool. 역할: 최근 성공 Commit의 Snapshot Undo를 새 Runtime 경로로 시작합니다.</summary>
+    /// <summary> 최근 성공 Commit의 Snapshot Undo를 새 Runtime 경로로 시작 </summary>
     public bool RequestUndo()
     {
         if (!IsRuntimeActive || IsProcessingTurn)
@@ -225,7 +221,7 @@ public class StageTurnController : MonoBehaviour
         }
     }
 
-    /// <summary>입력: 없음. 출력: 코루틴 완료. 역할: 성공 Commit 전 Snapshot을 RuntimeCommitter로 완전 복원합니다.</summary>
+    /// <summary> 성공 Commit 전 Snapshot을 RuntimeCommitter로 완전 복원 </summary>
     private IEnumerator ExecuteUndo()
     {
         IsProcessingTurn = true;
@@ -255,6 +251,7 @@ public class StageTurnController : MonoBehaviour
 
             currentTurnId = target.turnId;
             gameManager.RestoreColor(target.currentColor);
+            gameManager.ClearGameOverFromUndo();
         }
         finally
         {
@@ -262,16 +259,14 @@ public class StageTurnController : MonoBehaviour
             IsProcessingTurn = false;
         }
     }
-    /// <summary>
-    /// input direction이 xy상의 단위벡터인지 판단
-    /// </summary>
+    /// <summary> input direction이 xy상의 단위벡터인지 판단 </summary>
     private static bool IsCardinal(Vector3 direction)
     {
         return Mathf.Approximately(direction.z, 0f)
             && Mathf.Abs(direction.x) + Mathf.Abs(direction.y) == 1f;
     }
 
-    /// <summary>입력: snapshot. 출력: entity ID. 역할: Profile 기반 SelfMovable Solid Top actor를 안정적으로 선택합니다.</summary>
+    /// <summary> Profile 기반 SelfMovable Solid Top actor를 안정적으로 선택 </summary>
     private static string FindActorEntityId(StageBoardSnapshot snapshot)
     {
         string actorId = null;

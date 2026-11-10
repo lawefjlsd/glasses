@@ -2,7 +2,7 @@ using UnityEngine;
 
 [CreateAssetMenu(fileName = "StoryData", menuName = "Story/StoryData")]
 /// <summary>
-/// 스토리 대사와 표시 자산을 보관합니다.
+/// 스토리 대사와 표시 자산을 보관
 /// </summary>
 public class StoryData : ScriptableObject
 {

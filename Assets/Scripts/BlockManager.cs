@@ -1,24 +1,22 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// StageBoard에서 연쇄 Push 계획만 계산하는 Stage 컴포넌트입니다.
-/// </summary>
+/// <summary> StageBoard에서 Chaind Push만 계산하는 Stage Component </summary>
 public class BlockManager : MonoBehaviour
 {
-    /// <summary>입력: board, start, direction, ownerId. 출력: PushPlan과 실패 사유. 역할: Profile과 예약만 사용해 원자적인 연쇄 Push 계획을 계산합니다.</summary>
+    /// <summary>Profile과 Scehduel만 사용해 cell scale Chaind Push 계산</summary>
     public static bool TryCreatePushPlanPure(StageBoardWorkingCopy board, StageCell start, StageCell direction, string ownerId, out PushPlan plan, out string failureReason)
     {
         return TryCreateChainPlan(board, start, direction, ownerId, null, out plan, out failureReason);
     }
 
-    /// <summary>입력: board, start, direction, ownerId. 출력: PushPlan과 실패 사유. 역할: Separation 압력의 Chain을 Player Cell에서 끝내며 Player 자신과 그 너머는 밀지 않습니다.</summary>
+    /// <summary> Separation Push Chain을 Player Cell에서 끝냄</summary>
     public static bool TryCreateSeparationPushPlanPure(StageBoardWorkingCopy board, StageCell start, StageCell direction, string ownerId, out PushPlan plan, out string failureReason)
     {
         return TryCreateChainPlan(board, start, direction, ownerId, IsSeparationPlayer, out plan, out failureReason);
     }
 
-    /// <summary>입력: entity. 출력: bool. 역할: 원본 복원 Cell과 Chain 끝에서 동일한 Player 분류를 사용합니다.</summary>
+    /// <summary> Original Cell과 Chain 끝에서 동일한 Player 분류를 사용</summary>
     internal static bool IsSeparationPlayer(StageEntityState entity)
     {
         return entity != null
@@ -27,8 +25,8 @@ public class BlockManager : MonoBehaviour
             && entity.profile.movement == MovementCapability.SelfMovable
             && entity.profile.occupancy == OccupancyType.Solid;
     }
-
-    /// <summary>입력: board, 경로, 예약 owner, 종료 조건. 출력: PushPlan과 실패 사유. 역할: 공통 충돌 검증 뒤 종료 조건을 적용하고 먼 Block부터 이동 목록을 만듭니다.</summary>
+    
+    /// <summary> pair collision 검증 뒤, 먼 Block부터 push board를 만듦</summary>
     private static bool TryCreateChainPlan(StageBoardWorkingCopy board, StageCell start, StageCell direction, string ownerId,
         System.Predicate<StageEntityState> terminatesChain, out PushPlan plan, out string failureReason)
     {
@@ -96,7 +94,7 @@ public class BlockManager : MonoBehaviour
                 return false;
             }
 
-            // Player Action이 먼저 이 Cell에서 이탈합니다. Player는 Chain에 추가하지 않습니다.
+            // Player가 먼저 이 Cell에서 이탈
             if (terminatesChain != null && terminatesChain(nextEntity)) break;
             if (!IsPushableSolidTop(nextEntity))
             {

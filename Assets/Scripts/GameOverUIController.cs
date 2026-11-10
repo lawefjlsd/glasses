@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// <summary>Hierarchy 기반 Game Over Panel의 표시 상태를 관리합니다.</summary>
+/// <summary>Hierarchy 기반 Game Over Panel의 표시 상태를 관리</summary>
 public class GameOverUIController : MonoBehaviour
 {
     [SerializeField] private GameObject panel;

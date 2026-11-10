@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>CutscenePanel Prefab의 표시와 완료 콜백을 처리합니다.</summary>
+/// <summary>CutscenePanel Prefab의 표시와 완료 콜백을 처리</summary>
 public class CutsceneUIController : MonoBehaviour
 {
     [SerializeField] private GameObject panel;

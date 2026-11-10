@@ -1,19 +1,10 @@
 using UnityEngine;
 
-/// <summary>
-/// Snapshot, Separation 예약, 입력만으로 플레이어의 직접 이동 결과를 계산합니다.
-/// Scene Object, Physics, Transform은 조회하거나 변경하지 않습니다.
-/// </summary>
+/// <summary> Snapshot, Separation 예약, 입력만으로 player move result 계산 </summary>
 public static class PlayerActionResolver
 {
-    /// <summary>
-    /// 입력: snapshot, schedule, input. 출력: PlayerActionPlan.
-    /// 역할: 직접 이동 또는 전체 Push chain을 포함한 최종 플레이어 행동 계획을 계산합니다.
-    /// </summary>
-    public static PlayerActionPlan Resolve(
-        StageBoardSnapshot snapshot,
-        SeparationSchedule schedule,
-        TurnInput input)
+    /// <summary> Move, Push chain을 포함한 player move result </summary>
+    public static PlayerActionPlan Resolve(StageBoardSnapshot snapshot, SeparationSchedule schedule, TurnInput input)
     {
         PlayerActionPlan directPlan = ResolveDirectMove(snapshot, schedule, input);
         if (directPlan.outcome != PlayerActionOutcome.PushRequired)
@@ -22,14 +13,8 @@ public static class PlayerActionResolver
         return ResolvePush(snapshot, schedule, input);
     }
 
-    /// <summary>
-    /// 입력: snapshot, schedule, input. 출력: PlayerActionPlan.
-    /// 역할: Push가 필요하지 않은 플레이어 이동의 가능 여부와 Stage Clear 후보를 계산합니다.
-    /// </summary>
-    public static PlayerActionPlan ResolveDirectMove(
-        StageBoardSnapshot snapshot,
-        SeparationSchedule schedule,
-        TurnInput input)
+    /// <summary> Push가 필요하지 않은 player move 여부와 Stage Clear candidate를 계산 </summary>
+    public static PlayerActionPlan ResolveDirectMove(StageBoardSnapshot snapshot, SeparationSchedule schedule, TurnInput input)
     {
         if (snapshot == null)
             return Fail(PlayerActionOutcome.Invalid, PlayerActionFailureReason.InvalidInput, "Snapshot is missing.");
@@ -63,8 +48,6 @@ public static class PlayerActionResolver
         string ownerId = actionOwnerPrefix + actor.entityId;
         if (!board.CanAccessEntity(actor.entityId, ownerId))
             return Fail(PlayerActionOutcome.Blocked, PlayerActionFailureReason.ActorReserved, "Actor is reserved by Separation.");
-
-        // Cell 예약은 새 진입을 막습니다. Actor가 현재 Cell에서 나가는 이동은 막지 않습니다.
 
         if (IsGroundOneWayExitBlocked(board, actor.cell, direction))
             return Fail(PlayerActionOutcome.Blocked, PlayerActionFailureReason.ExitDirectionBlocked, "GroundOneWay exit direction does not match.");
@@ -118,14 +101,8 @@ public static class PlayerActionResolver
         };
     }
 
-    /// <summary>
-    /// 입력: snapshot, schedule, input. 출력: PlayerActionPlan.
-    /// 역할: Pushable Solid Top부터 시작하는 전체 Push와 뒤따르는 Actor 이동을 원자적으로 검증합니다.
-    /// </summary>
-    private static PlayerActionPlan ResolvePush(
-        StageBoardSnapshot snapshot,
-        SeparationSchedule schedule,
-        TurnInput input)
+    /// <summary>Pushable Solid Top부터 시작하는 전체 Push와 뒤따르는 move를 cell scale로 검증 </summary>
+    private static PlayerActionPlan ResolvePush(StageBoardSnapshot snapshot, SeparationSchedule schedule, TurnInput input)
     {
         if (!TryGetDirection(input.direction, out StageCell direction)
             || !snapshot.entities.TryGetValue(input.actorEntityId, out StageEntityState actor))
@@ -176,10 +153,7 @@ public static class PlayerActionResolver
         };
     }
 
-    private static bool TryApplyScheduleReservations(
-        StageBoardWorkingCopy board,
-        SeparationSchedule schedule,
-        out string failureReason)
+    private static bool TryApplyScheduleReservations(StageBoardWorkingCopy board, SeparationSchedule schedule, out string failureReason)
     {
         foreach (SeparationPlan plan in schedule.plans)
         {
@@ -205,11 +179,7 @@ public static class PlayerActionResolver
         return query.staticState.exitDirection != ToExitDirection(direction);
     }
 
-    private static bool TryGetBottom(
-        StageBoardWorkingCopy board,
-        CellQueryResult query,
-        out string colorName,
-        out bool isExclusive)
+    private static bool TryGetBottom(StageBoardWorkingCopy board, CellQueryResult query, out string colorName, out bool isExclusive)
     {
         if (!string.IsNullOrEmpty(query.bottomEntityId)
             && board.State.entities.TryGetValue(query.bottomEntityId, out StageEntityState entity))
@@ -248,10 +218,7 @@ public static class PlayerActionResolver
         return GroundOneWay.ExitDirection.D;
     }
 
-    private static PlayerActionPlan Fail(
-        PlayerActionOutcome outcome,
-        PlayerActionFailureReason reason,
-        string message)
+    private static PlayerActionPlan Fail(PlayerActionOutcome outcome, PlayerActionFailureReason reason, string message)
     {
         return new PlayerActionPlan
         {

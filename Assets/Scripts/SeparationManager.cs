@@ -1,12 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 입력 전 StageBoard Snapshot만 사용해 분리 예약과 유예를 계산합니다.
-/// </summary>
+/// <summary> 입력 전 StageBoard Snapshot만 사용해 Separation 계산 </summary>
 public class SeparationManager : MonoBehaviour
 {
-    /// <summary>입력: snapshot, targetTurn. 출력: SeparationSchedule. 역할: 이번 입력이 Commit할 Turn을 기준으로 due merged를 예약하거나 Deferred로 확정합니다.</summary>
+    /// <summary>이번 입력이 Commit할 Turn을 기준으로 due merged를 예약 / Deferred로 확정</summary>
     public SeparationSchedule CreateSchedule(StageBoardSnapshot snapshot, long targetTurn)
     {
         SeparationSchedule schedule = new SeparationSchedule();
@@ -35,9 +33,9 @@ public class SeparationManager : MonoBehaviour
                 && !entity.isInfinite
                 && IsDue(entity, targetTurn))
                 dueMerged.Add(entity);
-        }
+        }//merge 될 놈은 duemerge로
 
-        // 정렬은 결과/로그의 표시 순서만 고정합니다. 예약 선착순이나 생성 순서 우선권은 없습니다.
+        // not related to "merge"
         dueMerged.Sort((left, right) => string.CompareOrdinal(left.entityId, right.entityId));
         foreach (StageEntityState merged in dueMerged)
         {
@@ -49,8 +47,6 @@ public class SeparationManager : MonoBehaviour
                 schedule.invalidReason = "Merged origin geometry must be equal or cardinal-adjacent.";
                 return schedule;
             }
-
-            // 모든 후보는 예약과 이동을 적용하지 않은 동일 Snapshot에서 계산합니다.
             schedule.plans.Add(CreatePlan(board, merged));
         }
 
@@ -86,9 +82,6 @@ public class SeparationManager : MonoBehaviour
             return plan;
         }
 
-        int deltaX = plan.originBlockCell.x - merged.cell.x;
-        int deltaY = plan.originBlockCell.y - merged.cell.y;
-        int distance = System.Math.Abs(deltaX) + System.Math.Abs(deltaY);
         CellQueryResult origin = board.QueryCell(plan.originBlockCell);
         if (origin.solidTopEntityIds.Count > 1)
         {
@@ -96,11 +89,15 @@ public class SeparationManager : MonoBehaviour
             return plan;
         }
 
+        int deltaX = plan.originBlockCell.x - merged.cell.x;
+        int deltaY = plan.originBlockCell.y - merged.cell.y;
+        int distance = System.Math.Abs(deltaX) + System.Math.Abs(deltaY);
+
         if (origin.solidTopEntityIds.Count == 1
             && board.State.entities.TryGetValue(origin.solidTopEntityIds[0], out StageEntityState occupant)
             && !BlockManager.IsSeparationPlayer(occupant))
         {
-            // Player는 원본 Cell에서도 Chain 끝과 동일하게 탐색 종료 대상입니다.
+            // Player는 Origin Cell에서도 Chain 끝과 동일하게 탐색 종료 대상.
             if (IsPushableSolidTop(occupant) && distance > 0)
             {
                 if (!BlockManager.TryCreateSeparationPushPlanPure(
@@ -146,13 +143,14 @@ public class SeparationManager : MonoBehaviour
             && entity.profile.occupancy == OccupancyType.Solid;
     }
 
+    /// <summary> defer라 판단 된 plan에 defer부여 </summary>
     private static void Defer(SeparationPlan plan, string reason)
     {
         plan.isDeferred = true;
         plan.deferReason = string.IsNullOrEmpty(reason) ? "Separation is deferred." : reason;
     }
 
-    /// <summary>입력: 공통 Snapshot board와 후보 schedule. 출력: 없음. 역할: 모든 후보 쌍을 검사한 뒤 충돌한 양쪽을 함께 유예합니다.</summary>
+    /// <summary> 모든 candidate separate pair을 detect한 후 collide된 pair을 함께 유예</summary>
     private static void DeferConflictingPaths(StageBoardWorkingCopy board, SeparationSchedule schedule)
     {
         List<SeparationPlan> candidates = new List<SeparationPlan>();
@@ -161,7 +159,7 @@ public class SeparationManager : MonoBehaviour
         {
             if (plan.isDeferred) continue;
             candidates.Add(plan);
-            // Bottom 표면 전체가 아니라 실제 Top Block의 이동/복원 구간만 경로에 포함합니다.
+            // Bottom zone 제외
             List<BoardMovement> path = new List<BoardMovement>(plan.chainMovements);
             path.Add(new BoardMovement
             {
@@ -185,7 +183,7 @@ public class SeparationManager : MonoBehaviour
             }
         }
 
-        // 중간에 Deferred로 바꾸어 A-B 충돌 뒤 B-C 검사가 누락되지 않도록 마지막에 반영합니다.
+        // 중간에 Deferred로 바꾸어 A-B 충돌 뒤 B-C 검사가 누락되지 않도록 마지막에 반영
         foreach (SeparationPlan plan in conflicts)
         {
             Defer(plan, "Separation paths overlap or intersect in the same Snapshot.");
@@ -194,7 +192,7 @@ public class SeparationManager : MonoBehaviour
         }
     }
 
-    /// <summary>입력: 두 Plan과 임시 Top 경로. 출력: bool. 역할: 공유 Entity/Cell과 직선 이동 구간 교차를 판정합니다.</summary>
+    /// <summary> 공유 Entity/Cell과 linear crossover를 판정</summary>
     private static bool PathsConflict(SeparationPlan first, SeparationPlan second,
         List<BoardMovement> firstPath, List<BoardMovement> secondPath)
     {
@@ -207,7 +205,7 @@ public class SeparationManager : MonoBehaviour
         return false;
     }
 
-    /// <summary>입력: 두 cardinal 또는 제자리 이동. 출력: bool. 역할: 끝점/공선 구간을 포함한 축 정렬 선분 교차를 정수 Cell로 판정합니다.</summary>
+    /// <summary> 모든 path의 linear crossover를 grid Cell로 detect </summary>
     private static bool SegmentsIntersect(BoardMovement first, BoardMovement second)
     {
         return System.Math.Max(System.Math.Min(first.from.x, first.to.x), System.Math.Min(second.from.x, second.to.x))
@@ -222,8 +220,8 @@ public class SeparationManager : MonoBehaviour
             && (merged.createdTurnId < 0 || targetTurn <= merged.createdTurnId))
             return false;
 
-        // Commit된 카운트가 0이면 절대 Turn 메타데이터가 어긋나 있더라도 분리 대상이다.
-        // 단, 같은 Turn에 생성된 merged는 Merge 직후 즉시 분리하지 않는다.
+        // Commit된 카운트가 0이면 절대 Turn 메타데이터가 어긋나 있더라도 분리 대상
+        // 단, 같은 Turn에 생성된 merged는 Merge 직후 즉시 분리하지 않음
         if (merged.remainingTurns <= 0)
             return true;
 

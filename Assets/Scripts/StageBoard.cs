@@ -231,6 +231,7 @@ public sealed class StageEntityState
     public StageEntityKind kind;
     public StageCell cell;
     public bool isActive;
+    public StageCell? lastMoveFromCell;
     public GameObject runtimeObject;
     public GameObject mergedPrefab;
     public string colorName;
@@ -327,9 +328,6 @@ public sealed class StageBoardWorkingCopy
         return result;
     }
 
-    /// <summary>예약된 Cell인지 반환</summary>
-    public bool IsCellReserved(StageCell cell) => reservedCells.ContainsKey(cell);
-
     /// <summary>예약된 Entity인지 반환</summary>
     public bool IsEntityReserved(string entityId) => !string.IsNullOrEmpty(entityId) && reservedEntities.ContainsKey(entityId);
     public bool CanAccessCell(StageCell cell, string ownerId) => !reservedCells.TryGetValue(cell, out string owner) || owner == ownerId;
@@ -373,13 +371,7 @@ public sealed class StageBoardWorkingCopy
         return true;
     }
 
-    /// <summary>입력: out reason. 출력: bool. 역할: 최종 Commit 전 동적 Top 점유 중복과 참조 무결성을 검사합니다.</summary>
-    public bool ValidateInvariants(out string reason)
-    {
-        StageBoardValidationResult result = ValidateBoard(); reason = result.invalidReason; return result.isValid;
-    }
-
-    /// <summary>입력: 없음. 출력: StageBoardValidationResult. 역할: Zone/Profile 규칙으로 InvalidBoard와 GameOver 후보를 구분합니다.</summary>
+    /// <summary> Zone/Profile 규칙으로 InvalidBoard와 GameOver 후보를 구분 </summary>
     public StageBoardValidationResult ValidateBoard()
     {
         StageBoardValidationResult result = new StageBoardValidationResult();
@@ -421,24 +413,17 @@ public sealed class StageBoardWorkingCopy
 
 }
 
-/// <summary>
-/// Stage 런타임 오브젝트를 한 턴 시작 시점에만 캡처하고 논리 상태 사본을 제공하는 보드입니다.
-/// </summary>
+/// <summary> Stage runtime object를 시작 시점에만 캡처하고 logic copy만 기록 </summary>
 public sealed class StageBoard
 {
     private readonly StageBoardSnapshot snapshot;
 
-    /// <summary>
-    /// 입력: source. 출력: 없음. 역할: 캡처된 논리 보드 상태를 초기화합니다.
-    /// </summary>
     private StageBoard(StageBoardSnapshot source)
     {
         snapshot = source;
     }
 
-    /// <summary>
-    /// 입력: turnId, currentColor. 출력: StageBoard. 역할: 현재 Scene의 동적 Stage 엔티티를 한 번만 읽어 논리 보드 Snapshot을 생성합니다.
-    /// </summary>
+    /// <summary> 현재 Scene의 dynamic Stage entity를 한 번만 읽어 logic board Snapshot을 생성 </summary>
     public static StageBoard Capture(long turnId, string currentColor)
     {
         StageBoardSnapshot captured = new StageBoardSnapshot
@@ -474,40 +459,25 @@ public sealed class StageBoard
 
         return new StageBoard(captured);
     }
-
-    /// <summary>
-    /// 입력: 없음. 출력: StageBoardSnapshot. 역할: 현재 논리 보드의 독립 작업 사본을 반환합니다.
-    /// </summary>
     public StageBoardWorkingCopy CreateWorkingCopy() => new StageBoardWorkingCopy(snapshot);
-
-    /// <summary>
-    /// 입력: 없음. 출력: StageBoardSnapshot. 역할: Undo와 애니메이션 기준으로 사용할 불변 Snapshot 사본을 반환합니다.
-    /// </summary>
     public StageBoardSnapshot CreateSnapshot() => snapshot.Clone();
-
-    /// <summary>입력: snapshot. 출력: StageBoard. 역할: EditMode 테스트와 Undo 복원 검증용 논리 Board를 생성합니다.</summary>
     public static StageBoard FromSnapshot(StageBoardSnapshot snapshot)
     {
         return new StageBoard(snapshot == null ? new StageBoardSnapshot() : snapshot.Clone());
     }
-
-    /// <summary>
-    /// 입력: board, state. 출력: 없음. 역할: 안정적인 런타임 ID의 엔티티를 Snapshot에 추가합니다.
-    /// </summary>
     private static void AddEntity(StageBoardSnapshot board, StageEntityState state)
     {
         if (!board.entities.ContainsKey(state.entityId))
             board.entities.Add(state.entityId, state);
     }
 
-    /// <summary>입력: gameObject, fallback. 출력: StageObjectProfile. 역할: 선택적 Profile Component를 기본 Capture Profile보다 우선 적용합니다.</summary>
     private static StageObjectProfile GetProfile(GameObject gameObject, StageObjectProfile fallback)
     {
         StageObjectProfileComponent overrideProfile = gameObject.GetComponent<StageObjectProfileComponent>();
         return overrideProfile == null ? fallback : overrideProfile.ToProfile();
     }
 
-    /// <summary>입력: board. 출력: 없음. 역할: Tilemap, GroundOneWay, Finale을 한 턴 시작 시점의 정적 Cell 데이터로 캡처합니다.</summary>
+    /// <summary> Tilemap, GroundOneWay, Finale을 시작 시점의 Static Cell data로 캡처</summary>
     private static void CaptureStaticCells(StageBoardSnapshot board, Tilemap referenceTilemap)
     {
         TilemapManager tilemapManager = UnityEngine.Object.FindObjectOfType<TilemapManager>();
@@ -552,10 +522,7 @@ public sealed class StageBoard
             state.hasFinale = true; board.staticCells[cell] = state;
         }
     }
-
-    /// <summary>
-    /// 입력: player. 출력: StageEntityState. 역할: Player Component를 논리 엔티티 상태로 변환합니다.
-    /// </summary>
+    
     private static StageEntityState CreatePlayerState(Player player, Tilemap referenceTilemap)
     {
         return new StageEntityState
@@ -569,9 +536,6 @@ public sealed class StageBoard
         };
     }
 
-    /// <summary>
-    /// 입력: block. 출력: StageEntityState. 역할: Block Component를 논리 엔티티 상태로 변환합니다.
-    /// </summary>
     private static StageEntityState CreateBlockState(Block block, Tilemap referenceTilemap)
     {
         return new StageEntityState
@@ -582,15 +546,13 @@ public sealed class StageBoard
             isActive = block.gameObject.activeSelf,
             runtimeObject = block.gameObject,
             mergedPrefab = block.mergedBlockPrefab,
+            lastMoveFromCell = block.LastMoveFromCell,
             colorName = block.colorName,
             mergeColorEffect = block.ColorEffect,
             profile = GetProfile(block.gameObject, new StageObjectProfile { zone = StageZone.Top, movement = MovementCapability.Pushable, occupancy = OccupancyType.Solid })
         };
     }
 
-    /// <summary>
-    /// 입력: background. 출력: StageEntityState. 역할: BlockBackground Component를 논리 엔티티 상태로 변환합니다.
-    /// </summary>
     private static StageEntityState CreateBackgroundState(BlockBackground background, Tilemap referenceTilemap)
     {
         return new StageEntityState
@@ -607,9 +569,6 @@ public sealed class StageBoard
         };
     }
 
-    /// <summary>
-    /// 입력: merged. 출력: StageEntityState. 역할: BlockMerged Component를 논리 엔티티 상태로 변환합니다.
-    /// </summary>
     private static StageEntityState CreateMergedState(BlockMerged merged, Tilemap referenceTilemap)
     {
         Block originBlock = merged.originBlockPrefab == null
@@ -642,7 +601,7 @@ public sealed class StageBoard
         };
     }
 
-    /// <summary>입력: kind, component. 출력: 안정적인 Entity ID. 역할: 모든 Runtime 참조를 동일한 Component Instance ID 규칙으로 변환합니다.</summary>
+    /// <summary> 모든 Runtime 참조를 동일한 Component Instance ID 규칙으로 변환</summary>
     private static string CreateEntityId(StageEntityKind kind, Component component)
     {
         if (component == null) return null;

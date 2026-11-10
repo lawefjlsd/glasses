@@ -563,7 +563,7 @@ public class StageBoardTests
     public void PlayerActionResolver_RejectsObstacleAndMissingBottom()
     {
         StageBoardSnapshot obstacleBoard = ResolverBoard("Red");
-        obstacleBoard.staticCells[new StageCell(1, 0)].hasObstacle = true;
+        obstacleBoard.staticCells[new StageCell(1, 0)] = new StageCellStaticState { hasObstacle = true };
         Assert.That(ResolveRight(obstacleBoard).failureReason, Is.EqualTo(PlayerActionFailureReason.Obstacle));
 
         StageBoardSnapshot emptyBoard = ResolverBoard("Red");

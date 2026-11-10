@@ -1112,6 +1112,383 @@ public class StageTurnResolverTests
         Assert.That(snapshot.entities["a-origin-block"].isActive, Is.False);
     }
 
+    /// <summary>입력: 색상 효과. 출력: 없음. 역할: 직접 복원의 출발점은 이전 BM Cell이며 이번 BG만 새 Merge의 원본이 되는지 검증합니다.</summary>
+    [TestCase(MergeColorEffect.Add)]
+    [TestCase(MergeColorEffect.Remove)]
+    public void LastMoveOrigin_DirectRestorationThenMergeUsesMergedDeparture(MergeColorEffect effect)
+    {
+        StageBoardSnapshot snapshot = RecentOriginBoard(effect);
+        AddOriginTargetBackground(snapshot, "next-bg", new StageCell(4, 0));
+
+        TurnResult result = ResolveOriginTurn(snapshot);
+        StageEntityState merged = FindActiveMerge(result.committedBoard, "origin-block");
+
+        Assert.That(merged.cell, Is.EqualTo(new StageCell(4, 0)));
+        Assert.That(merged.originBlockCell, Is.EqualTo(new StageCell(3, 0)));
+        Assert.That(merged.originBlockEntityId, Is.EqualTo("origin-block"));
+        Assert.That(merged.originBackgroundEntityId, Is.EqualTo("next-bg"));
+        Assert.That(merged.mergeColorEffect, Is.EqualTo(effect));
+        Assert.That(result.committedBoard.entities["origin-block"].lastMoveFromCell, Is.EqualTo(new StageCell(3, 0)));
+        Assert.That(result.committedBoard.entities["origin-background"].isActive, Is.True);
+        Assert.That(snapshot.entities["origin-block"].lastMoveFromCell, Is.EqualTo(new StageCell(2, 0)));
+    }
+
+    /// <summary>입력: 색상 효과. 출력: 없음. 역할: 서로 다른 Chain Block이 병합될 때 출발점과 원본 ID가 섞이지 않는지 검증합니다.</summary>
+    [TestCase(MergeColorEffect.Add)]
+    [TestCase(MergeColorEffect.Remove)]
+    public void LastMoveOrigin_SeparationChainMergesPreserveEachDeparture(MergeColorEffect effect)
+    {
+        StageBoardSnapshot snapshot = RecentOriginBoard(effect);
+        AddGround(snapshot, new StageCell(4, 0), "Black");
+        for (int i = 4; i <= 5; i++)
+        {
+            StageEntityState chain = Pushable("chain-" + i, new StageCell(i, 0));
+            chain.colorName = "Red";
+            chain.mergeColorEffect = effect;
+            chain.mergedPrefab = mergedPrefab;
+            chain.lastMoveFromCell = new StageCell(i - 1, 0);
+            snapshot.entities.Add(chain.entityId, chain);
+        }
+        AddOriginTargetBackground(snapshot, "bg-5", new StageCell(5, 0));
+        AddOriginTargetBackground(snapshot, "bg-6", new StageCell(6, 0));
+
+        TurnResult result = ResolveOriginTurn(snapshot);
+
+        for (int i = 4; i <= 5; i++)
+        {
+            StageEntityState merged = FindActiveMerge(result.committedBoard, "chain-" + i);
+            Assert.That(merged.cell, Is.EqualTo(new StageCell(i + 1, 0)));
+            Assert.That(merged.originBlockCell, Is.EqualTo(new StageCell(i, 0)));
+            Assert.That(merged.originBackgroundEntityId, Is.EqualTo("bg-" + (i + 1)));
+            Assert.That(result.committedBoard.entities["chain-" + i].lastMoveFromCell, Is.EqualTo(new StageCell(i, 0)));
+        }
+        Assert.That(result.committedBoard.entities["origin-block"].lastMoveFromCell, Is.EqualTo(new StageCell(3, 0)));
+    }
+
+    /// <summary>입력: 없음. 출력: 없음. 역할: 다른 BM이 몇 턴 뒤 BG를 복원할 때까지 정지한 Block의 출발점이 유지되는지 검증합니다.</summary>
+    [Test]
+    public void LastMoveOrigin_IdleTurnsRetainDepartureUntilLaterBackgroundRestoration()
+    {
+        StageBoardSnapshot snapshot = RecentOriginBoard(MergeColorEffect.Add);
+        AddDueSeparation(snapshot, "later", new StageCell(4, 0), new StageCell(5, 0), 2);
+        snapshot.entities["later-merged"].separationDueTurn = 9;
+        snapshot.entities["later-merged"].remainingTurns = 4;
+        snapshot.entities["later-origin-background"].acceptedColorName = "Red";
+        snapshot.entities["later-origin-background"].remainingTurns = 2;
+        AddGround(snapshot, new StageCell(5, 0), "Black");
+
+        StageBoardSnapshot current = ResolveOriginTurn(snapshot).committedBoard;
+        for (int i = 0; i < 2; i++)
+        {
+            current = ResolveOriginTurn(current).committedBoard;
+            Assert.That(current.entities["origin-block"].isActive, Is.True);
+            Assert.That(current.entities["origin-block"].lastMoveFromCell, Is.EqualTo(new StageCell(3, 0)));
+        }
+        TurnResult final = ResolveOriginTurn(current);
+        StageEntityState merged = FindActiveMerge(final.committedBoard, "origin-block");
+        Assert.That(merged.originBlockCell, Is.EqualTo(new StageCell(3, 0)));
+        Assert.That(merged.originBackgroundEntityId, Is.EqualTo("later-origin-background"));
+        Assert.That(merged.createdTurnId, Is.EqualTo(9));
+    }
+
+    /// <summary>입력: 없음. 출력: 없음. 역할: B에서 C로 새 Push가 성공하면 더 오래된 출발점 A를 B로 갱신하는지 검증합니다.</summary>
+    [Test]
+    public void LastMoveOrigin_LaterPlayerPushReplacesOldDeparture()
+    {
+        StageBoardSnapshot snapshot = new StageBoardSnapshot { turnId = 8, currentColor = "White" };
+        AddPlayer(snapshot, new StageCell(3, 0));
+        AddGround(snapshot, new StageCell(3, 0), "Black");
+        AddGround(snapshot, new StageCell(4, 0), "Black");
+        StageEntityState block = Pushable("block", new StageCell(4, 0));
+        block.lastMoveFromCell = new StageCell(3, 0);
+        block.colorName = "Red";
+        block.mergedPrefab = mergedPrefab;
+        snapshot.entities.Add(block.entityId, block);
+        AddOriginTargetBackground(snapshot, "bg", new StageCell(5, 0));
+
+        SeparationSchedule schedule = CreateSchedule(snapshot);
+        TurnResult result = StageTurnResolver.Resolve(snapshot, schedule, PlayerActionResolver.Resolve(snapshot, schedule, InputRight()));
+
+        Assert.That(result.isValid, Is.True, result.invalidReason);
+        Assert.That(FindActiveMerge(result.committedBoard, "block").originBlockCell, Is.EqualTo(new StageCell(4, 0)));
+        Assert.That(result.committedBoard.entities["block"].lastMoveFromCell, Is.EqualTo(new StageCell(4, 0)));
+        Assert.That(block.lastMoveFromCell, Is.EqualTo(new StageCell(3, 0)));
+    }
+
+    /// <summary>입력: 없음. 출력: 없음. 역할: 이동 없는 초기 Merge는 현재 Cell을 사용하고 초기 위치 이력을 새로 만들지 않는지 검증합니다.</summary>
+    [Test]
+    public void LastMoveOrigin_UnmovedInitialMergeUsesCurrentCell()
+    {
+        StageBoardSnapshot snapshot = new StageBoardSnapshot { currentColor = "Black" };
+        AddMergePair(snapshot, "block", "bg", new StageCell(0, 0), "Red", "Red", MergeColorEffect.Add);
+        TurnResult result = StageTurnResolver.ResolveInitialMerges(snapshot);
+        Assert.That(result.isValid, Is.True, result.invalidReason);
+        Assert.That(FindActiveMerge(result.committedBoard, "block").originBlockCell, Is.EqualTo(new StageCell(0, 0)));
+        Assert.That(result.committedBoard.entities["block"].lastMoveFromCell, Is.Null);
+    }
+
+    /// <summary>입력: 색상 효과. 출력: 없음. 역할: 반복 분리/병합은 최초 위치에 고정되지 않고 직전 BM 위치를 출발점으로 갱신합니다.</summary>
+    [TestCase(MergeColorEffect.Add)]
+    [TestCase(MergeColorEffect.Remove)]
+    public void LastMoveOrigin_RepeatedSeparationMergeAlternatesLatestDeparture(MergeColorEffect effect)
+    {
+        StageBoardSnapshot current = RecentOriginBoard(effect);
+        AddOriginTargetBackground(current, "next-bg", new StageCell(4, 0));
+        for (int i = 0; i < 4; i++)
+        {
+            current = ResolveOriginTurn(current).committedBoard;
+            StageEntityState merged = FindActiveMerge(current, "origin-block");
+            Assert.That(merged.cell, Is.EqualTo(new StageCell(i % 2 == 0 ? 4 : 3, 0)));
+            Assert.That(merged.originBlockCell, Is.EqualTo(new StageCell(i % 2 == 0 ? 3 : 4, 0)));
+            Assert.That(merged.originBackgroundEntityId, Is.EqualTo(i % 2 == 0 ? "next-bg" : "origin-background"));
+        }
+    }
+
+    /// <summary>입력: 없음. 출력: 없음. 역할: 제자리 복원은 실제 이동이 아니므로 저장된 출발점을 덮어쓰지 않습니다.</summary>
+    [Test]
+    public void LastMoveOrigin_ZeroDistanceRestorationKeepsPreviousDeparture()
+    {
+        StageBoardSnapshot snapshot = RecentOriginBoard(MergeColorEffect.Add);
+        snapshot.entities["merged"].originBlockCell = new StageCell(3, 0);
+        TurnResult result = ResolveOriginTurn(snapshot);
+        Assert.That(FindActiveMerge(result.committedBoard, "origin-block").originBlockCell, Is.EqualTo(new StageCell(2, 0)));
+    }
+
+    /// <summary>입력: 유예 원인. 출력: 없음. 역할: GO/Obstacle/Plan 충돌로 실패한 분리는 위치와 기존 출발점 이력을 변경하지 않습니다.</summary>
+    [TestCase("go")]
+    [TestCase("obstacle")]
+    [TestCase("reservation")]
+    public void LastMoveOrigin_DeferredSeparationDoesNotChangeHistory(string cause)
+    {
+        StageBoardSnapshot snapshot = RecentOriginBoard(MergeColorEffect.Add);
+        StageEntityState chain = Pushable("chain", new StageCell(4, 0));
+        chain.lastMoveFromCell = new StageCell(4, -1);
+        snapshot.entities.Add("chain", chain);
+        AddGround(snapshot, new StageCell(4, 0), "Black");
+        AddGround(snapshot, new StageCell(5, 0), "Black");
+        if (cause == "go")
+        {
+            snapshot.staticCells[new StageCell(4, 0)].bottomGroundKind = StageBottomGroundKind.GroundOneWay;
+            snapshot.staticCells[new StageCell(4, 0)].exitDirection = GroundOneWay.ExitDirection.W;
+        }
+        else if (cause == "obstacle")
+            snapshot.staticCells[new StageCell(5, 0)] = new StageCellStaticState { hasObstacle = true };
+        else
+            AddDueSeparation(snapshot, "other", new StageCell(5, 1), new StageCell(5, 0), 2);
+
+        SeparationSchedule schedule = CreateSchedule(snapshot);
+        Assert.That(schedule.plans.Find(p => p.mergedEntityId == "merged").isDeferred, Is.True);
+        TurnResult result = StageTurnResolver.Resolve(snapshot, schedule, PlayerActionResolver.Resolve(snapshot, schedule, InputRight()));
+        Assert.That(result.isValid, Is.True, result.invalidReason);
+        Assert.That(result.committedBoard.entities["chain"].lastMoveFromCell, Is.EqualTo(chain.lastMoveFromCell));
+        Assert.That(result.committedBoard.entities["chain"].cell, Is.EqualTo(chain.cell));
+        Assert.That(result.committedBoard.entities["origin-block"].lastMoveFromCell, Is.EqualTo(new StageCell(2, 0)));
+        Assert.That(result.committedBoard.entities["merged"].remainingTurns, Is.Zero);
+    }
+
+    /// <summary>입력: 없음. 출력: 없음. 역할: 실패 입력은 이동 이력을 가진 원본 Snapshot과 Undo 기록을 소모하지 않습니다.</summary>
+    [Test]
+    public void LastMoveOrigin_FailedActionDoesNotChangeSnapshot()
+    {
+        StageBoardSnapshot snapshot = RecentOriginBoard(MergeColorEffect.Add);
+        AddGround(snapshot, new StageCell(4, 0), "Black");
+        snapshot.staticCells[new StageCell(-1, 0)] = new StageCellStaticState { hasObstacle = true };
+        SeparationSchedule schedule = CreateSchedule(snapshot);
+        TurnResult result = StageTurnResolver.Resolve(snapshot, schedule, PlayerActionResolver.Resolve(snapshot, schedule, InputRight()));
+        Assert.That(result.isValid, Is.False);
+        Assert.That(result.committedBoard, Is.Null);
+        Assert.That(snapshot.entities["origin-block"].lastMoveFromCell, Is.EqualTo(new StageCell(2, 0)));
+        Assert.That(snapshot.entities["origin-block"].isActive, Is.False);
+    }
+
+    /// <summary>입력: 색상 효과. 출력: 없음. 역할: Undo의 전체 Snapshot 복원 뒤 재실행하면 기준 Cell/타이머/CC와 Merge 결과가 동일한지 검증합니다.</summary>
+    [TestCase(MergeColorEffect.Add)]
+    [TestCase(MergeColorEffect.Remove)]
+    public void LastMoveOrigin_UndoSnapshotAndReplayAreDeterministic(MergeColorEffect effect)
+    {
+        StageBoardSnapshot snapshot = RecentOriginBoard(effect);
+        AddOriginTargetBackground(snapshot, "next-bg", new StageCell(4, 0));
+        GameObject undoObject = new GameObject("UndoForLastMoveOrigin");
+        try
+        {
+            UndoManager undo = undoObject.AddComponent<UndoManager>();
+            Assert.That(undo.BeginTurnSnapshot(snapshot), Is.True);
+            TurnResult first = ResolveOriginTurn(snapshot);
+            Assert.That(undo.ConfirmTurnSnapshot(), Is.True);
+            Assert.That(undo.TryBeginUndoSnapshot(out StageBoardSnapshot restored), Is.True);
+            Assert.That(restored.entities["origin-block"].lastMoveFromCell, Is.EqualTo(new StageCell(2, 0)));
+            Assert.That(restored.entities["merged"].isActive, Is.True);
+            Assert.That(restored.entities["origin-block"].isActive, Is.False);
+            Assert.That(restored.entities["origin-background"].isActive, Is.False);
+            Assert.That(restored.entities["merged"].remainingTurns, Is.EqualTo(snapshot.entities["merged"].remainingTurns));
+            Assert.That(restored.currentColor, Is.EqualTo(snapshot.currentColor));
+            TurnResult replay = ResolveOriginTurn(restored);
+            StageEntityState firstMerged = FindActiveMerge(first.committedBoard, "origin-block");
+            StageEntityState replayMerged = FindActiveMerge(replay.committedBoard, "origin-block");
+            Assert.That(replayMerged.originBlockCell, Is.EqualTo(firstMerged.originBlockCell));
+            Assert.That(replayMerged.originBlockEntityId, Is.EqualTo(firstMerged.originBlockEntityId));
+            Assert.That(replayMerged.originBackgroundEntityId, Is.EqualTo(firstMerged.originBackgroundEntityId));
+            Assert.That(replayMerged.separationDueTurn, Is.EqualTo(firstMerged.separationDueTurn));
+            Assert.That(replay.committedBoard.currentColor, Is.EqualTo(first.committedBoard.currentColor));
+            Assert.That(replay.committedBoard.entities["player"].cell, Is.EqualTo(first.committedBoard.entities["player"].cell));
+        }
+        finally { Object.DestroyImmediate(undoObject); }
+    }
+
+    /// <summary>입력: 좌표 기준과 효과. 출력: 없음. 역할: 실제 Commit 최종화/Instantiate/Capture 및 Undo 최종화가 이력과 원본 World/Component ID를 보존하는지 검증합니다. 애니메이션 대기는 생략합니다.</summary>
+    [TestCase(false, MergeColorEffect.Add)]
+    [TestCase(true, MergeColorEffect.Add)]
+    [TestCase(true, MergeColorEffect.Remove)]
+    public void LastMoveOrigin_RuntimeCommitCaptureAndUndoRoundTrip(bool fractionalGrid, MergeColorEffect effect)
+    {
+        GameObject root = new GameObject("LastMoveRuntimeTest");
+        GameObject generated = null;
+        try
+        {
+            UnityEngine.Tilemaps.Tilemap tilemap = null;
+            if (fractionalGrid)
+            {
+                root.AddComponent<Grid>().cellSize = new Vector3(0.75f, 1.25f, 1f);
+                root.transform.position = new Vector3(0.125f, -0.375f, 0f);
+                GameObject tiles = new GameObject("ReferenceTilemap");
+                tiles.transform.SetParent(root.transform, false);
+                tilemap = tiles.AddComponent<UnityEngine.Tilemaps.Tilemap>();
+                root.AddComponent<TilemapManager>().tilemaps = new[] { tilemap };
+            }
+            StageRuntimeCommitter committer = root.AddComponent<StageRuntimeCommitter>();
+            Block block = new GameObject("OriginBlock").AddComponent<Block>();
+            block.transform.SetParent(root.transform, false);
+            BlockBackground background = new GameObject("NewBackground").AddComponent<BlockBackground>();
+            background.transform.SetParent(root.transform, false);
+            mergedPrefab.AddComponent<BlockMerged>();
+            mergedPrefab.SetActive(false);
+            block.mergedBlockPrefab = mergedPrefab;
+            block.colorName = "Red";
+            typeof(Block).GetField("colorEffect", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).SetValue(block, effect);
+            background.colorName = "Black";
+            background.acceptedColorName = "Red";
+            background.mergeDurationTurns = 2;
+            StageCell departure = new StageCell(0, 0);
+            StageCell destination = new StageCell(1, 0);
+            block.transform.position = StageGridCoordinates.CellToWorld(departure, tilemap);
+            background.transform.position = StageGridCoordinates.CellToWorld(destination, tilemap);
+            string blockId = "block:" + block.GetInstanceID();
+            string backgroundId = "background:" + background.GetInstanceID();
+            StageBoardSnapshot capture = StageBoard.Capture(3, "Black").CreateSnapshot();
+            StageBoardSnapshot before = new StageBoardSnapshot { turnId = 3, currentColor = "Black" };
+            before.entities.Add(blockId, capture.entities[blockId]);
+            before.entities.Add(backgroundId, capture.entities[backgroundId]);
+            StageBoardSnapshot moved = before.Clone();
+            moved.entities[blockId].cell = destination;
+            moved.entities[blockId].lastMoveFromCell = departure;
+            CommitOriginStateImmediately(committer, before, moved, tilemap, false);
+            capture = StageBoard.Capture(moved.turnId, moved.currentColor).CreateSnapshot();
+            Assert.That(capture.entities[blockId].isActive, Is.True);
+            Assert.That(capture.entities[blockId].lastMoveFromCell, Is.EqualTo(departure));
+            TurnResult result = StageTurnResolver.ResolveInitialMerges(moved);
+            Assert.That(result.isValid, Is.True, result.invalidReason);
+            CommitOriginStateImmediately(committer, before, result.committedBoard, tilemap, true);
+            StageEntityState mergedState = FindActiveMerge(result.committedBoard, blockId);
+            generated = mergedState.runtimeObject;
+            BlockMerged merged = generated.GetComponent<BlockMerged>();
+            Assert.That(block.LastMoveFromCell, Is.EqualTo(departure));
+            Assert.That(block.gameObject.activeSelf, Is.False);
+            Assert.That(merged.originBlockPosition, Is.EqualTo(StageGridCoordinates.CellToWorld(departure, tilemap)));
+            Assert.That(StageGridCoordinates.WorldToCell(merged.originBlockPosition, tilemap), Is.EqualTo(departure));
+            Assert.That(StageGridCoordinates.WorldToCell(generated.transform.position, tilemap), Is.EqualTo(destination));
+            Assert.That(merged.originBlockPrefab, Is.SameAs(block.gameObject));
+            Assert.That(merged.originBackgroundObject, Is.SameAs(background.gameObject));
+            Assert.That(merged.createdTurnId, Is.EqualTo(mergedState.createdTurnId));
+            Assert.That(merged.separationDueTurn, Is.EqualTo(mergedState.separationDueTurn));
+            Assert.That(merged.remainingTurns, Is.EqualTo(mergedState.remainingTurns));
+            Assert.That(merged.mergeColorEffect, Is.EqualTo(effect));
+            capture = StageBoard.Capture(result.committedBoard.turnId, result.committedBoard.currentColor).CreateSnapshot();
+            Assert.That(capture.entities[blockId].lastMoveFromCell, Is.EqualTo(departure));
+            StageEntityState capturedMerged = capture.entities["merged:" + merged.GetInstanceID()];
+            Assert.That(capturedMerged.originBlockCell, Is.EqualTo(departure));
+            Assert.That(capturedMerged.originBlockEntityId, Is.EqualTo(blockId));
+            Assert.That(capturedMerged.originBackgroundEntityId, Is.EqualTo(backgroundId));
+
+            // Undo는 반대 방향 이동을 기록하지 않고 이동 이력이 없었던 Snapshot을 그대로 적용합니다.
+            AnimationBatch undoAnimation = (AnimationBatch)typeof(StageRuntimeCommitter)
+                .GetMethod("BuildRestoreAnimationBatch", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(null, new object[] { result.committedBoard, before });
+            Assert.That(undoAnimation.movements.Exists(m => m.entityId == blockId && m.from.Equals(destination) && m.to.Equals(departure)), Is.True);
+            Assert.That(before.entities[blockId].lastMoveFromCell, Is.Null);
+            CommitOriginStateImmediately(committer, result.committedBoard, before.Clone(), tilemap, false);
+            Assert.That(block.LastMoveFromCell, Is.Null);
+            Assert.That(block.gameObject.activeSelf, Is.True);
+            Assert.That(generated.activeSelf, Is.False);
+            Assert.That(block.transform.position, Is.EqualTo(StageGridCoordinates.CellToWorld(departure, tilemap)));
+            capture = StageBoard.Capture(before.turnId, before.currentColor).CreateSnapshot();
+            Assert.That(capture.entities[blockId].lastMoveFromCell, Is.Null);
+        }
+        finally
+        {
+            if (generated != null) Object.DestroyImmediate(generated);
+            Object.DestroyImmediate(root);
+        }
+    }
+
+    /// <summary>입력: Commit 사본/좌표/생성 여부. 출력: 없음. 역할: 기존 Commit/Undo의 동일 최종화 코드를 EditMode에서 애니메이션 대기 없이 실행합니다.</summary>
+    private static void CommitOriginStateImmediately(StageRuntimeCommitter committer, StageBoardSnapshot before, StageBoardSnapshot after, UnityEngine.Tilemaps.Tilemap tilemap, bool createMerged)
+    {
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        object[] prepare = { before, after, createMerged, null };
+        Assert.That((bool)typeof(StageRuntimeCommitter).GetMethod("PreparePlannedMerged", flags).Invoke(committer, prepare), Is.True, prepare[3] as string);
+        object[] finalize = { before, after, tilemap, null };
+        Assert.That((bool)typeof(StageRuntimeCommitter).GetMethod("ApplyFinalState", flags).Invoke(committer, finalize), Is.True, finalize[3] as string);
+    }
+
+    /// <summary>입력: 효과. 출력: Snapshot. 역할: 이전 이력이 있는 원본 Block을 3→4로 복원할 최소 Board를 구성합니다.</summary>
+    private StageBoardSnapshot RecentOriginBoard(MergeColorEffect effect)
+    {
+        StageBoardSnapshot snapshot = RemotePlayerBoard();
+        AddDueSeparation(snapshot, string.Empty, new StageCell(3, 0), new StageCell(4, 0), 1);
+        snapshot.entities["merged"].mergeColorEffect = effect;
+        StageEntityState block = snapshot.entities["origin-block"];
+        block.colorName = "Red";
+        block.mergeColorEffect = effect;
+        block.mergedPrefab = mergedPrefab;
+        block.lastMoveFromCell = new StageCell(2, 0);
+        StageEntityState background = snapshot.entities["origin-background"];
+        background.colorName = "Black";
+        background.acceptedColorName = "Red";
+        background.remainingTurns = 1;
+        return snapshot;
+    }
+
+    /// <summary>입력: Board, ID, Cell. 출력: 없음. 역할: 새 Merge에만 사용될 BG를 등록합니다.</summary>
+    private static void AddOriginTargetBackground(StageBoardSnapshot snapshot, string id, StageCell cell)
+    {
+        snapshot.entities.Add(id, new StageEntityState
+        {
+            entityId = id, kind = StageEntityKind.BlockBackground, isActive = true, cell = cell,
+            colorName = "Black", acceptedColorName = "Red", remainingTurns = 1,
+            profile = Profile(StageZone.Bottom, MovementCapability.Static, OccupancyType.Surface)
+        });
+    }
+
+    /// <summary>입력: Snapshot. 출력: 성공 TurnResult. 역할: 분리 공간 밖 Player를 왕복시켜 실제 순수 Turn 파이프라인을 검증합니다.</summary>
+    private static TurnResult ResolveOriginTurn(StageBoardSnapshot snapshot)
+    {
+        TurnInput input = new TurnInput { actorEntityId = "player", direction = snapshot.entities["player"].cell.x == -2 ? Vector3.right : Vector3.left };
+        SeparationSchedule schedule = CreateSchedule(snapshot);
+        PlayerActionPlan action = PlayerActionResolver.Resolve(snapshot, schedule, input);
+        TurnResult result = StageTurnResolver.Resolve(snapshot, schedule, action);
+        Assert.That(result.isValid, Is.True, result.invalidReason);
+        return result;
+    }
+
+    /// <summary>입력: Board와 원본 Block ID. 출력: 활성 BM 상태. 역할: 생성 ID의 형식에 의존하지 않고 해당 Block의 Merge 결과를 확인합니다.</summary>
+    private static StageEntityState FindActiveMerge(StageBoardSnapshot snapshot, string blockId)
+    {
+        foreach (StageEntityState entity in snapshot.entities.Values)
+            if (entity.isActive && entity.kind == StageEntityKind.BlockMerged && entity.originBlockEntityId == blockId) return entity;
+        Assert.Fail("Active merged entity was not found for " + blockId);
+        return null;
+    }
+
     /// <summary>입력: 없음. 출력: Snapshot. 역할: 두 Chain이 중앙 Entity에서 교차하는 공통 입력 Board를 구성합니다.</summary>
     private static StageBoardSnapshot CrossingChainsBoard()
     {

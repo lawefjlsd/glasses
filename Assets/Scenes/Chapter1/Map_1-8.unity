@@ -529,7 +529,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8258e8f9d6381c541afe3d2fb556a620, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blockSpeed: 8
 --- !u!1 &687738919
 GameObject:
   m_ObjectHideFlags: 0
@@ -7642,37 +7641,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &900000000601
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1384206223}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bbd74c74ab9479d4eb1e65693a753ee9, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  enableController: 0
-  gameManager: {fileID: 1384206225}
-  blockManager: {fileID: 501328603}
-  separationManager: {fileID: 1481578422}
-  undoManager: {fileID: 1118208610}
-  movementHelper: {fileID: 1912082567}
-  runtimeCommitter: {fileID: 900000000602}
---- !u!114 &900000000602
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1384206223}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4faad0da305eff94f81e0880a64de5f7, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
 --- !u!4 &1384206224
 Transform:
   m_ObjectHideFlags: 0
@@ -7702,9 +7670,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   storyDatas:
   - {fileID: 11400000, guid: f886fa099b3097344800af1619289e3d, type: 2}
-  sceneName: 1-1
+  sceneName: 1-8
   currentChapter: 1
-  currentStage: 1
+  currentStage: 8
 --- !u!1 &1393508906
 GameObject:
   m_ObjectHideFlags: 0
@@ -7817,18 +7785,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 530c38f547883704891d0f35709c16fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  colorBlockLayer:
-    serializedVersion: 2
-    m_Bits: 2048
-  colorBlockBackgroundLayer:
-    serializedVersion: 2
-    m_Bits: 512
-  colorBlockMergedLayer:
-    serializedVersion: 2
-    m_Bits: 1024
-  groundOneWayLayer:
-    serializedVersion: 2
-    m_Bits: 4096
 --- !u!1 &1424948456
 GameObject:
   m_ObjectHideFlags: 0
@@ -8377,7 +8333,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30f314dc5d78cb34dae83c10f527b04b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  separateSpeed: 8
 --- !u!1 &1522035825
 GameObject:
   m_ObjectHideFlags: 0
@@ -8825,6 +8780,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03ce458d0c46e024992ee7b7f31d7d31, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  defaultMoveSpeed: 8
 --- !u!1 &1944836256
 GameObject:
   m_ObjectHideFlags: 0
@@ -8913,6 +8869,35 @@ Transform:
   - {fileID: 1481578421}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &900000000601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1384206223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbd74c74ab9479d4eb1e65693a753ee9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gameManager: {fileID: 1384206225}
+  separationManager: {fileID: 1481578422}
+  undoManager: {fileID: 1118208610}
+  movementHelper: {fileID: 1912082567}
+  runtimeCommitter: {fileID: 900000000602}
+--- !u!114 &900000000602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1384206223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4faad0da305eff94f81e0880a64de5f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

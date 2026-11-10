@@ -25,7 +25,7 @@ public class ProgressSaveDataTests
 
         Assert.That(data.unlockedChapterIds, Does.Contain("chapter_1"));
         Assert.That(data.currentProgressStageId, Is.EqualTo("stage_1_1"));
-        Assert.That(data.mainMapSceneName, Is.EqualTo("Sample_Map"));
+        Assert.That(data.mainMapSceneName, Is.EqualTo("MainMap"));
         Assert.That(data.masterVolume, Is.EqualTo(1f));
     }
 

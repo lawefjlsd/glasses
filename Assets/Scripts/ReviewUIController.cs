@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>Title Scene의 Review Panel을 표시합니다.</summary>
+/// <summary>Title Scene의 Review Panel을 표시</summary>
 public class ReviewUIController : MonoBehaviour
 {
     [SerializeField] private GameObject panel;

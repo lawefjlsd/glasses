@@ -2,13 +2,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 확정된 Snapshot, Separation Schedule, Player Action Plan을 순수 TurnResult로 결합합니다.
-/// Scene Object와 Transform은 변경하지 않습니다.
-/// </summary>
+/// <summary>  확정된 Snapshot, Separation Schedule, Player Action Plan을 순수 TurnResult로 결합 </summary>
 public static class StageTurnResolver
 {
-    /// <summary>입력: Scene 초기 Snapshot. 출력: 초기 Merge만 반영한 TurnResult. 역할: Turn을 진행하지 않고 일반 Merge/CC 규칙을 한 번 적용합니다.</summary>
+    /// <summary> Turn을 진행하지 않고 일반 Merge/CC 규칙을 한 번 적용 </summary>
     public static TurnResult ResolveInitialMerges(StageBoardSnapshot snapshot)
     {
         TurnResult result = new TurnResult
@@ -26,7 +23,7 @@ public static class StageTurnResolver
 
         result.isGameOverCandidate = initialValidation.isGameOverCandidate;
         if (!result.isGameOverCandidate
-            && !ApplyMerges(board, new Dictionary<string, StageCell>(), snapshot.turnId, result.mergeBatch, out string mergeFailure))
+            && !ApplyMerges(board, snapshot.turnId, result.mergeBatch, out string mergeFailure))
             return Invalid(result, mergeFailure);
 
         if (!RefreshCurrentColor(board.State, out string colorFailure)) return Invalid(result, colorFailure);
@@ -74,13 +71,13 @@ public static class StageTurnResolver
         if (actionPlan.pushPlan != null)
         {
             if (!board.TryApply(actionPlan.pushPlan.movements, MovementIntent.Push, actionOwnerId)) return Invalid(result, "Player Push plan could not be applied.");
+            RecordSuccessfulBlockMoves(board, actionPlan.pushPlan.movements);
             result.animationBatch.movements.AddRange(actionPlan.pushPlan.movements);
         }
         if (!board.TryApply(new[] { actionPlan.actorMovement }, MovementIntent.SelfMove, actionOwnerId)) return Invalid(result, "Player movement could not be applied.");
         result.animationBatch.movements.Add(actionPlan.actorMovement);
 
         if (!ApplySeparations(ref board, schedule, actionPlan.actorMovement, result.animationBatch, out string separationFailure)) return Invalid(result, separationFailure);
-        Dictionary<string, StageCell> movementOrigins = CollectMovementOrigins(actionPlan, schedule);
 
         StageBoardValidationResult postSeparation = board.ValidateBoard();
         if (!postSeparation.isValid) return Invalid(result, postSeparation.invalidReason);
@@ -89,7 +86,7 @@ public static class StageTurnResolver
         long committedTurnId = snapshot.turnId + 1;
         if (!result.isGameOverCandidate)
         {
-            if (!ApplyMerges(board, movementOrigins, committedTurnId, result.mergeBatch, out string mergeFailure)) return Invalid(result, mergeFailure);
+            if (!ApplyMerges(board, committedTurnId, result.mergeBatch, out string mergeFailure)) return Invalid(result, mergeFailure);
         }
         if (!RefreshCurrentColor(board.State, out string colorFailure)) return Invalid(result, colorFailure);
         result.mergeBatch.resultingColor = board.State.currentColor;
@@ -139,7 +136,7 @@ public static class StageTurnResolver
                 continue;
             }
 
-            // Player Action은 예약 Cell에 진입하지 않아야 합니다. 불일치는 유예가 아닌 내부 계획 오류입니다.
+            // Player Action은 예약 Cell에 진입하지 않아야 함.
             if (ContainsActivePlayer(board, plan.originBlockCell))
             {
                 failureReason = "Internal Player Action/Separation mismatch: Player occupies the scheduled restoration Cell.";
@@ -168,7 +165,7 @@ public static class StageTurnResolver
                 Debug.Log($"[SeparationDebug] Separation applying merged={scheduledMerged.entityId} cell={scheduledMerged.cell} origin={plan.originBlockCell} remaining={scheduledMerged.remainingTurns} justCreated={scheduledMerged.isJustCreated} createdTurn={scheduledMerged.createdTurnId} dueTurn={scheduledMerged.separationDueTurn} chainCount={plan.chainMovements.Count}");
             }
 
-            // Plan 전체를 별도 Board에서 검증합니다. Chain만 성공한 중간 상태는 채택하지 않습니다.
+            // Plan 전체를 별도 Board에서 검증.
             StageBoardWorkingCopy stagedBoard = StageBoard.FromSnapshot(board.State).CreateWorkingCopy();
             if (!ApplyScheduleReservations(stagedBoard, schedule, out failureReason)) return false;
             if (plan.chainMovements.Count > 0)
@@ -180,9 +177,6 @@ public static class StageTurnResolver
                     continue;
                 }
             }
-
-            // TryApply는 원자 적용을 위해 Entity Dictionary를 Clone으로 교체합니다.
-            // 따라서 Chain 적용 전에 얻은 참조를 재사용하지 않고 항상 현재 Dictionary에서 다시 조회합니다.
             if (!TryGetCurrentSeparationEntities(stagedBoard, plan, out StageEntityState merged, out StageEntityState block, out StageEntityState background))
             {
                 failureReason = "Separation entities are missing after Chain Push application.";
@@ -199,8 +193,11 @@ public static class StageTurnResolver
             if (!validation.isValid) { failureReason = validation.invalidReason; return false; }
 
             board = stagedBoard;
+            BoardMovement restoration = new BoardMovement { entityId = block.entityId, from = mergedCell, to = plan.originBlockCell };
+            RecordSuccessfulBlockMoves(board, plan.chainMovements);
+            RecordSuccessfulBlockMoves(board, new[] { restoration });
             animationBatch.movements.AddRange(plan.chainMovements);
-            animationBatch.movements.Add(new BoardMovement { entityId = block.entityId, from = mergedCell, to = plan.originBlockCell });
+            animationBatch.movements.Add(restoration);
             Debug.Log($"[SeparationDebug] Separation applied merged={merged.entityId} activeAfter={merged.isActive} block={block.entityId} blockCell={block.cell} background={background.entityId} backgroundCell={background.cell} gameOverCandidate={validation.isGameOverCandidate}");
         }
 
@@ -328,15 +325,21 @@ public static class StageTurnResolver
         plan.deferReason = string.IsNullOrEmpty(reason) ? "Separation is deferred." : reason;
     }
 
-    private static Dictionary<string, StageCell> CollectMovementOrigins(PlayerActionPlan actionPlan, SeparationSchedule schedule)
+    /// <summary> Clone 교체 후 현재 Entity에 valid move start만 기록 </summary>
+    private static void RecordSuccessfulBlockMoves(StageBoardWorkingCopy board, IEnumerable<BoardMovement> movements)
     {
-        Dictionary<string, StageCell> origins = new Dictionary<string, StageCell>();
-        if (actionPlan.pushPlan != null) foreach (BoardMovement movement in actionPlan.pushPlan.movements) origins[movement.entityId] = movement.from;
-        foreach (SeparationPlan plan in schedule.plans) if (plan != null && !plan.isDeferred) foreach (BoardMovement movement in plan.chainMovements) origins[movement.entityId] = movement.from;
-        return origins;
+        foreach (BoardMovement movement in movements)
+        {
+            if (movement.from.Equals(movement.to)) continue;
+            StageEntityState entity = board.State.entities[movement.entityId];
+            if (entity.profile.zone == StageZone.Top
+                && entity.profile.movement == MovementCapability.Pushable
+                && entity.profile.occupancy == OccupancyType.Solid)
+                entity.lastMoveFromCell = movement.from;
+        }
     }
 
-    private static bool ApplyMerges(StageBoardWorkingCopy board, Dictionary<string, StageCell> movementOrigins, long committedTurnId, MergeBatchResult batch, out string failureReason)
+    private static bool ApplyMerges(StageBoardWorkingCopy board, long committedTurnId, MergeBatchResult batch, out string failureReason)
     {
         List<Tuple<StageEntityState, StageEntityState>> candidates = new List<Tuple<StageEntityState, StageEntityState>>();
         foreach (StageEntityState block in board.State.entities.Values)
@@ -372,7 +375,7 @@ public static class StageTurnResolver
             if (!block.isActive || !background.isActive) continue;
 
             string mergedEntityId = "planned-merged:" + committedTurnId + ":" + nextBatchId + ":" + nextEventOrder + ":" + block.entityId;
-            StageCell originBlockCell = movementOrigins.TryGetValue(block.entityId, out StageCell origin) ? origin : block.cell;
+            StageCell originBlockCell = block.lastMoveFromCell ?? block.cell;
             StageEntityState merged = new StageEntityState
             {
                 entityId = mergedEntityId,

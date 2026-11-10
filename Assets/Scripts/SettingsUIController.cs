@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>SettingsPanel Prefab의 입력 차단과 Master Volume을 처리합니다.</summary>
+/// <summary>SettingsPanel Prefab의 입력 차단과 Master Volume을 처리</summary>
 public class SettingsUIController : MonoBehaviour
 {
     [SerializeField] private GameObject panel;

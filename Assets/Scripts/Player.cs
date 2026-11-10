@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// StageTurnController에 방향 입력만 전달하는 플레이어 표현 컴포넌트입니다.
+/// StageTurnController에 Input Direction만 전달하는 Player Component
 /// </summary>
 public class Player : MonoBehaviour
 {
@@ -11,12 +11,8 @@ public class Player : MonoBehaviour
     private StageTurnController stageTurnController;
 
     public Transform initialPosition;
-    public GameObject clearUIPrefab;
-    public float moveSpeed = 5f;
     public float inputCooldown = 0.2f;
     [SerializeField] private float inputHoldDelay = 0.3f;
-
-    public bool IsMovingStatus() => stageTurnController != null && stageTurnController.IsProcessingTurn;
 
     private void Start()
     {

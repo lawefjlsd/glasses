@@ -1,11 +1,9 @@
 using NUnit.Framework;
 
-/// <summary>
-/// StageController가 사용하는 순수 색상 규칙을 검증합니다.
-/// </summary>
+/// <summary> StageController가 사용하는 color를 검증 </summary>
 public class GameManagerColorTests
 {
-    /// <summary>입력: 없음. 출력: 없음. 역할: Add 효과가 RGB 성분을 누적하는지 검증합니다.</summary>
+    /// <summary> Add 효과가 RGB 성분을 누적하는지 검증</summary>
     [Test]
     public void ApplyMergeEffect_CombinesPrimaryColors()
     {
@@ -14,7 +12,7 @@ public class GameManagerColorTests
         Assert.That(magenta, Is.EqualTo("Magenta"));
     }
 
-    /// <summary>입력: 없음. 출력: 없음. 역할: 일반·exclusive Bottom의 포함 색상 판정을 검증합니다.</summary>
+    /// <summary> 일반·exclusive Bottom의 포함 색상 판정을 검증</summary>
     [Test]
     public void TryIsAvailable_RespectsNormalAndExclusiveBottom()
     {

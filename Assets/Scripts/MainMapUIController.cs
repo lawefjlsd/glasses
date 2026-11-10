@@ -10,7 +10,7 @@ public class MainMapStageButton
     public TextMeshProUGUI label;
 }
 
-/// <summary>Main Map의 직렬화된 Stage Button 상태와 Scene 진입을 관리합니다.</summary>
+/// <summary>Main Map의 직렬화된 Stage Button 상태와 Scene 진입을 관리.</summary>
 public class MainMapUIController : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI chapterName;

@@ -6,14 +6,17 @@ public enum MergeColorEffect
     Remove
 }
 
-/// <summary>
-/// 색상 블록의 병합 정보를 관리합니다.
-/// </summary>
 public class Block : MonoBehaviour
 {
     public string colorName;
     public GameObject mergedBlockPrefab;
-    public GameObject originBlockPrefab;
     [SerializeField] private MergeColorEffect colorEffect = MergeColorEffect.Add;
+
     public MergeColorEffect ColorEffect => colorEffect;
+
+    /// <summary>valid move의 initial Cell입니다. invalid move면 null.</summary>
+    public StageCell? LastMoveFromCell { get; private set; }
+
+    /// <summary> Commit/Undo 상태를 복원</summary>
+    public void RestoreLastMoveFromCell(StageCell? cell){ LastMoveFromCell = cell; }
 }

@@ -532,11 +532,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tilemaps:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 1265741113}
+  - {fileID: 1382287206}
+  - {fileID: 146186327}
 --- !u!1 &326615893
 GameObject:
   m_ObjectHideFlags: 0

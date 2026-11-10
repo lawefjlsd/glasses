@@ -4,26 +4,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-/// <summary>StageBoard Commit의 성공·실패 상태를 반환합니다.</summary>
+/// <summary>StageBoard Commit의 succeed·fail을 반환</summary>
 public sealed class StageRuntimeCommitResult
 {
     public bool isSuccess;
     public string error;
 }
 
-/// <summary>
-/// 확정된 StageBoard 결과를 런타임 오브젝트에 반영하고 AnimationBatch를 병렬 재생합니다.
-/// </summary>
+/// <summary> 확정된 StageBoard 결과를 런타임 오브젝트에 반영하고 AnimationBatch를 병렬 재생 </summary>
 public class StageRuntimeCommitter : MonoBehaviour
 {
     private readonly HashSet<GameObject> dynamicObjects = new HashSet<GameObject>();
 
-    /// <summary>입력: before, result, movementHelper. 출력: Commit 완료. 역할: TurnResult를 한 번만 Scene 상태로 반영합니다.</summary>
-    public IEnumerator Commit(
-        StageBoardSnapshot before,
-        TurnResult result,
-        MovementHelper movementHelper,
-        Action<StageRuntimeCommitResult> completed)
+    /// <summary> TurnResult를 한 번만 Scene 상태로 반영 </summary>
+    public IEnumerator Commit(StageBoardSnapshot before, TurnResult result, MovementHelper movementHelper, Action<StageRuntimeCommitResult> completed)
     {
         if (before == null || result == null || !result.isValid || result.committedBoard == null)
         {
@@ -40,12 +34,8 @@ public class StageRuntimeCommitter : MonoBehaviour
             completed));
     }
 
-    /// <summary>입력: current, target, movementHelper. 출력: 복원 완료. 역할: Undo가 보관한 완전 BoardSnapshot을 병렬 애니메이션으로 복원합니다.</summary>
-    public IEnumerator RestoreSnapshot(
-        StageBoardSnapshot current,
-        StageBoardSnapshot target,
-        MovementHelper movementHelper,
-        Action<StageRuntimeCommitResult> completed)
+    /// <summary> Undo가 보관한 BoardSnapshot을 애니메이션으로 병렬 재생 </summary>
+    public IEnumerator RestoreSnapshot(StageBoardSnapshot current, StageBoardSnapshot target, MovementHelper movementHelper, Action<StageRuntimeCommitResult> completed)
     {
         if (current == null || target == null)
         {
@@ -194,6 +184,11 @@ public class StageRuntimeCommitter : MonoBehaviour
         GameObject runtimeObject,
         Tilemap referenceTilemap)
     {
+        if (state.kind == StageEntityKind.Block)
+        {
+            Block block = runtimeObject.GetComponent<Block>();
+            if (block != null) block.RestoreLastMoveFromCell(state.lastMoveFromCell);
+        }
         if (state.kind != StageEntityKind.BlockMerged) return;
 
         BlockMerged merged = runtimeObject.GetComponent<BlockMerged>();

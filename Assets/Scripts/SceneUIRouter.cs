@@ -1,9 +1,7 @@
 using System;
 using UnityEngine;
 
-/// <summary>
-/// 입력: Scene-local UI Controller. 출력: 현재 Scene의 UI 표시 요청. 역할: 영속 진행 서비스와 Scene UI를 느슨하게 연결합니다.
-/// </summary>
+/// <summary> continous service 와 Scene UI를 연결</summary>
 public static class SceneUIRouter
 {
     private static TitleUIController title;
