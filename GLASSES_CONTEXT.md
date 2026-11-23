@@ -333,7 +333,7 @@ flowchart TD
 1. 4개 Chapter(13·6·10·10 Stage) + EX Stage. 각 Chapter 마지막이 Finale이며 4-10이 최종 Stage다.
 2. Build Settings: TitleScene, MainMap, `Chapter1/Map_1-1`~`Map_1-13`, `Map_2-1`~`Map_2-5`. Map_2-6과 3·4챕터 맵은 없다.
 3. 1챕터 제목: 1-1 조작·Merge·색상 / 1-2 Chain Push / 1-3 Ground Exclusive / 1-4 Background 색상 조건 / 1-5 Merge와 Separation / 1-6 Separation No Diff. / 1-7 Game Over / 1-8 Separation 응용 / 1-9 It is not complicated / 1-10 RGB = White / 1-11 Ouch! / 1-12 Separation No Diff. 응용 / 1-13 미정.
-4. 2챕터 제목: 2-1 Tutorial: GO / 2-2 GO + Separation No Diff / 2-3 GO maze / 2-4 Cowardly / 2-5 미정 / 2-6 미정(맵 미제작). 3·4챕터와 EX는 미정 [D-09][D-10].
+4. 2챕터 제목: 2-1 Tutorial: GO / 2-2 GO + Separation No Diff / 2-3 GO maze / 2-4 Cowardly / 2-5 미정 / 2-6 미정(맵 미제작). 3·4챕터와 EX는 미정 [D-09][D-10]. 사용자 지시(2026-11-23): BlockRev(BR/BRM, Remove)는 **Chapter 3에서 처음 쓴다**. 1·2챕터 맵에는 BR을 쓰지 않는다. 기존 1-1~2-5에는 BR이 없다(`STAGE_ANALYSIS.md`).
 5. 새 Stage는 기획서 6.1 양식(Stage/맵 파일, 제목, 학습 목표, 새 오브젝트, 의도한 해법, 막히기 쉬운 지점)으로 추가한다. v1.5에서 삭제한 6장 본문은 자동 복구하지 않는다.
 
 ### 11a.2. 화면과 진행 규칙
@@ -428,3 +428,12 @@ D-01·D-02·D-05·D-07·D-14는 기획서 Google Docs v2.1(12.2), D-03·D-04·D-
 3. 본문: 2.1 BG 표기를 `BG_[entryColor]_[acceptedColor]_[turn]`로 바꾸고 설명에 entryColor·acceptedColor·turn 0 = ∞를 추가했다. 4.4에 복원 방향 화살표 표시를, 8.2 구현 대기에 화살표[D-08]와 1-7 기반 Game Over 예시 작성[D-03]을 추가했다.
 4. 작업 중 찾기·바꾸기 창이 늦게 열려 문서 전체가 선택된 상태에서 텍스트가 입력되는 사고가 있었다. 즉시 실행 취소로 되돌렸고, mobilebasic 보기로 제목 45개·표 13개·v2.1 변경 이력·결정란 수가 그대로인 것을 확인한 뒤 작업을 이어갔다.
 5. 반영 후 mobilebasic 보기로 다시 읽어 바뀐 문구와 남은 결정란 수를 확인했다.
+
+### 12.4. 기획서 v2.3 반영 기록
+
+기록일: 2026-11-23. 사용자가 Chapter 3 BR 설계 중 S3 "나중이 이긴다" 초안을 기획서에 올리도록 요청했다.
+
+1. 문서버전 v2.2 → v2.3. 11장 변경 이력에 v2.3 행을 추가했다.
+2. 6.4 3챕터: "BlockRev(BR·BRM, Remove)는 이 챕터에서 처음 등장한다(2026-11-23 결정)" 문장을 추가했다. 그 아래에 3-2(가안) "나중이 이긴다"의 Stage 명세(맵 파일, 학습 목표, 새 오브젝트, 의도한 해법, 막히기 쉬운 지점)를 문단으로 넣었다. v1.5에서 삭제한 맵 표는 복구하지 않았고, 배치도는 `STAGE_ANALYSIS.md`에만 있다.
+3. 반영 후 mobilebasic 보기로 다시 읽어 제목 45개, 표 13개, 변경 이력, 6.4 본문을 확인했다.
+4. 3-1 튜토리얼(S1)은 기획서에 올리지 않았다. 스테이지 번호 3-2는 가안이다.
