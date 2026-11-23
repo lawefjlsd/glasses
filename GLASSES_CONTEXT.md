@@ -56,7 +56,7 @@ v2.0 기획서는 2~5장을 확정 규칙, 8장을 개발 현황, 10장을 미�
 2. G·G_E·GO·BG·BM/BRM을 같은 칸의 Base/Overlay로 중첩시키지 않는다. BG와 BM/BRM 교체는 Merge·Separation 상태 전환으로 처리한다.
 3. Object를 추가할 수 있으므로 Zone·MovementCapability·OccupancyType을 이용한 구조를 유지한다.
 4. 기획서 표기: `B_[color]`, `BR_[color]`, `G_[color]`, `G_[color]_E`, `GO_[color]_[W/A/S/D]`, `BG_[blockColor]_[acceptedColor]_[turn]`, `BM_[color]`, `BRM_[color]`. BG 첫 색상의 의미와 `turn = 0`(영구) 표기는 미결정이다 [D-04].
-5. 코드에서 G_E는 별도 enum이 아니라 `StageCellStaticState.isExclusive`로 표현한다(`StageBottomGroundKind`는 Empty/Ground/GroundOneWay). Finale는 기획상 Top(Trigger)이지만 구현은 Cell 표식이다 [D-05].
+5. 코드에서 G_E는 별도 enum이 아니라 `StageCellStaticState.isExclusive`로 표현한다(`StageBottomGroundKind`는 Empty/Ground/GroundOneWay). Finale(F)는 CC와 무관한 Top의 Trigger 오브젝트이며 B/BR과 겹칠 수 있다 [D-05, 2026-11-23 확정]. 구현은 정적 Cell 표식(`hasFinale`)이지만 동작은 같다.
 
 ### 3.1a. 색상과 진입 판정
 
@@ -91,7 +91,7 @@ v2.0 기획서는 2~5장을 확정 규칙, 8장을 개발 현황, 10장을 미�
 5. Player는 Separation보다 먼저 행동한다. Separation 경로의 현재 Player 점유만으로 분리를 Deferred하지 않는다.
 6. Separation Chain은 Player Cell에서 끝난다. Player를 밀지 않으며 Player 너머 Block도 그 Separation Chain에 포함하지 않는다. Player 자신의 별도 Push는 구분한다.
 7. Player 이탈용 `requiresActorVacate`, `actorVacateCell`, `isPlayerException` 등의 저장 필드나 Bool에 의존하지 않는다. 기존 enum, Entity, `actorMovement`, `chainMovements`, 원본 복원 정보를 사용한다.
-8. 사용자 요구의 '유효 입력'과 현재 코드의 이동 제한 처리 사이에는 7절의 미해결 의미 차이가 남아 있다 [D-01]. 이 문서를 근거로 벽 통과·제자리 Turn·강제 이동을 추가하지 않는다.
+8. 막힌 방향 입력은 Turn을 소비하지 않고 막힘 피드백만 준다 [D-01, 2026-11-23 확정]. 벽 통과·제자리 Turn·강제 이동을 추가하지 않는다.
 9. 예약(Virtual Obstacle): 이번 Turn에 실행될 Separation이 쓰는 Cell과 오브젝트를 예약한다. 별도 오브젝트가 아니다. P와 다른 Block은 예약 Cell에 새로 들어갈 수 없지만, P가 원래 있던 Cell에서 나가는 것은 막지 않는다.
 10. Separation 뒤 CC는 사라진 이벤트를 빼고 남은 이벤트를 Black부터 다시 적용한다. 가려졌던 이전 효과가 다시 나타날 수 있다. 분리 연출 중에는 입력을 잠근다.
 11. Stage 시작 시 Merge 검사를 한 번 하며 Turn을 소비하지 않는다.
@@ -177,7 +177,7 @@ v2.0 기획서는 2~5장을 확정 규칙, 8장을 개발 현황, 10장을 미�
 
 ## 7. 대화의 마지막 제안과 현재 구현의 차이
 
-이 절은 **미해결 차이의 기록**이다. 자동으로 수정할 항목이나 사용자 확정 규칙으로 취급하지 않는다. 기획서 v2.0에서 7.1은 D-02, 7.3은 D-01, 7.4는 D-07, 7.5의 분리 방향 표시는 D-08로 정리되었고, 2026-11-23 기준 모두 결정란이 비어 있다.
+이 절은 **미해결 차이의 기록**이다. 자동으로 수정할 항목이나 사용자 확정 규칙으로 취급하지 않는다. 기획서 v2.0에서 7.1은 D-02, 7.3은 D-01, 7.4는 D-07, 7.5의 분리 방향 표시는 D-08로 정리되었다. 2026-11-23에 D-01(현행 + 막힘 피드백), D-02(현행 유지), D-07(유예 상태 표시)이 사용자 확정되었고(11b.1), D-08은 미결정이다. 아래 7.1·7.3·7.4는 결정 전 논의 기록으로 보존한다.
 
 ### 7.1. 최종 점유 중심 제안과 경로 겹침 중심 구현 [D-02]
 
@@ -282,7 +282,7 @@ v2.0 기획서는 2~5장을 확정 규칙, 8장을 개발 현황, 10장을 미�
 1. `PlayerActionResolver_RejectsObstacleAndMissingBottom`의 입력 불일치(Ground+Obstacle 중첩인데 기대값 `Obstacle`)는 8.1a대로 입력을 고쳤다. 수정 후 통과 여부는 미검증이다.
 2. 실제 사용자 맵의 입력, 분리 애니메이션, 활성 전환, CC·Timer 표시, Undo 복원은 Play Mode 확인이 필요하다.
 3. 일부 Scene과 `ProjectSettings/TagManager.asset`의 공백 오류가 원본 문서에 기록되어 있다. 이번 문서 작업에서 이를 수정하거나 전체 검사를 다시 실행하지 않는다.
-4. 7절의 경로 충돌 범위 [D-02], 유효 입력 의미 [D-01], Deferred Timer 표시 [D-07] 차이는 추가 구현 전 확인 대상이다.
+4. 경로 충돌 범위 [D-02], 유효 입력 의미 [D-01], Deferred Timer 표시 [D-07]는 2026-11-23 확정되었다. 남은 구현 차이는 11b.1을 따른다.
 5. 코드에 테스트가 있다는 사실과 그 테스트가 현재 환경에서 통과했다는 사실을 구분한다.
 6. 기획서 v2.0 8.2 구현 대기: Map_2-6과 3·4챕터 맵 제작, 1챕터 후반·후속 Stage 검증, GO·BR/BRM Sprite·Prefab·맵 배치 확인, MainMap 입구 배치(현재 1-1~1-6 버튼만), 돌아보기 목록, 컷씬 데이터 등록.
 
@@ -349,24 +349,38 @@ flowchart TD
 
 ## 11b. 기획서 v2.0 미결정 사항 색인
 
-2026-11-23 기준 모든 항목의 결정란은 비어 있다. 결정되면 기획서 본문과 이 문서를 함께 갱신한다.
+2026-11-23 사용자 확정: D-01·D-02·D-05·D-07·D-14 (아래 11b.1). 사용자는 이 결정이 원래 의도이며 이전에 정했던 내용이 기획서에서 빠진 것이라고 밝혔다. 나머지 항목의 결정란은 비어 있다. 결정되면 기획서 본문과 이 문서를 함께 갱신한다.
 
-| ID | 항목 | 현재 상태 | 선택지 |
+| ID | 항목 | 현재 상태 | 선택지 | 결정 |
+|---|---|---|---|---|
+| D-01 | 유효 입력의 정의 | 막힌 방향 입력은 Turn 미소비, Stuck 자동 처리 없음 | 현행 + 막힘 피드백 / Turn 소비 | **현행 유지 + 막힘 피드백** |
+| D-02 | 동시 Separation 충돌 기준 | 경로 공유·교차 시 두 Plan 모두 유예 | 현행 / 최종 점유 양립 시 함께 실행(미구현) | **현행 유지** |
+| D-03 | Game Over 발생 상황 | Solid Top 중복 시 Game Over, Undo로 해제 | 대표 배치 예시 추가 | — |
+| D-04 | BG 표기 첫 색상 의미 | `blockColor` 이름 불분명, turn 0(영구) 미표기 | `BG_[entryColor]_[acceptedColor]_[turn]`, turn 0 = ∞ | — |
+| D-05 | Finale 분류 | 기획 Top(Trigger), 구현 Cell 표식 | Block이 F 위에 올라갈 수 있는지 함께 결정 | **F는 CC와 무관한 Top Trigger 오브젝트, B/BR과 겹침 허용, Game Over 우선 유지** |
+| D-06 | Stage 시작 CC | 모두 Black | 현행 / Stage 데이터에 시작 CC | — |
+| D-07 | 유예 Timer 표시 | 기존 값(0 또는 1) 유지 | 유예 상태 아이콘 | **BM/BRM 라벨에 유예 상태 표시** |
+| D-08 | 분리 방향 표시 | 복원 방향이 화면에 안 보임 | BM/BRM에 복원 방향 화살표 | — |
+| D-09 | 3·4챕터 신규 오브젝트 | Block Sep·Robot·Eat Block TBD | Zone·이동·점유·색상 한 줄 정의 후 채택 | — |
+| D-10 | EX Stage | 해금 조건·전용 규칙 TBD | 예: Chapter 전체 클리어 시 해금 | — |
+| D-11 | 메인 맵 진입 방식 | Stage 버튼(1-1~1-6) | WASD 입구 방식 + Chapter별 입구 배치도 | — |
+| D-12 | 컷씬 콘텐츠 | 등록 컷씬 없음, 돌아보기 목록 미구현 | `StoryData` 재사용 여부, Stage별 컷씬 ID 목록 | — |
+| D-13 | 오디오 | BGM·SFX 목록·재생 시점 미정 | 화면·이벤트별 사운드 목록 | — |
+| D-14 | HUD Remaining Turns | 자리표시 문구만 표시 | 삭제 / 다음 분리까지 남은 턴 표시 | **HUD 항목 삭제** (남은 턴은 BM/BRM 라벨로 표시) |
+
+### 11b.1. 2026-11-23 확정 내용과 구현 차이
+
+| ID | 확정 규칙 | 현재 코드 | 구현 필요 |
 |---|---|---|---|
-| D-01 | 유효 입력의 정의 | 막힌 방향 입력은 Turn 미소비, Stuck 자동 처리 없음 | 현행 + 막힘 피드백 / Turn 소비 |
-| D-02 | 동시 Separation 충돌 기준 | 경로 공유·교차 시 두 Plan 모두 유예 | 현행 / 최종 점유 양립 시 함께 실행(미구현) |
-| D-03 | Game Over 발생 상황 | Solid Top 중복 시 Game Over, Undo로 해제 | 대표 배치 예시 추가 |
-| D-04 | BG 표기 첫 색상 의미 | `blockColor` 이름 불분명, turn 0(영구) 미표기 | `BG_[entryColor]_[acceptedColor]_[turn]`, turn 0 = ∞ |
-| D-05 | Finale 분류 | 기획 Top(Trigger), 구현 Cell 표식 | Block이 F 위에 올라갈 수 있는지 함께 결정 |
-| D-06 | Stage 시작 CC | 모두 Black | 현행 / Stage 데이터에 시작 CC |
-| D-07 | 유예 Timer 표시 | 기존 값(0 또는 1) 유지 | 유예 상태 아이콘 |
-| D-08 | 분리 방향 표시 | 복원 방향이 화면에 안 보임 | BM/BRM에 복원 방향 화살표 |
-| D-09 | 3·4챕터 신규 오브젝트 | Block Sep·Robot·Eat Block TBD | Zone·이동·점유·색상 한 줄 정의 후 채택 |
-| D-10 | EX Stage | 해금 조건·전용 규칙 TBD | 예: Chapter 전체 클리어 시 해금 |
-| D-11 | 메인 맵 진입 방식 | Stage 버튼(1-1~1-6) | WASD 입구 방식 + Chapter별 입구 배치도 |
-| D-12 | 컷씬 콘텐츠 | 등록 컷씬 없음, 돌아보기 목록 미구현 | `StoryData` 재사용 여부, Stage별 컷씬 ID 목록 |
-| D-13 | 오디오 | BGM·SFX 목록·재생 시점 미정 | 화면·이벤트별 사운드 목록 |
-| D-14 | HUD Remaining Turns | 자리표시 문구만 표시 | 삭제 / 다음 분리까지 남은 턴 표시 |
+| D-01 | 막힌 방향 입력(`PlayerActionResolver`가 `Move`가 아닌 결과)은 Turn을 소비하지 않고 상태를 바꾸지 않는다. 대신 막힘 피드백(흔들림·효과음 등)을 준다. 제자리 Turn·강제 이동·Stuck 자동 처리는 없다. | 거부 후 로그만 남김 | 피드백 연출 추가. 피드백 형태(흔들림/효과음)는 구현 시 확인 |
+| D-02 | 같은 Turn의 실행 가능한 두 Plan이 Cell·Entity·이동/복원 구간을 공유하거나 교차하면 둘 다 유예한다. 최종 점유 기준 제안(7.1)은 채택하지 않는다. | 일치 (6절) | 없음 |
+| D-05 | F는 Cell 표식이 아닌 Top의 Trigger 오브젝트다. CC·색상 조건과 무관하다. Solid(P·B·BR)와 Trigger의 관계(collider/trigger)이므로 B/BR이 F와 겹쳐도 된다. P가 F에 도달하면 Stage Clear이고, 같은 Turn에 Game Over가 함께 성립하면 Game Over가 우선한다. | 동작은 일치: `BlockManager.TryCreateChainPlan()`은 F를 검사하지 않아 Block이 F와 겹칠 수 있고, Clear 판정에 CC 조건이 없으며, Game Over가 우선함. 표현은 다름: `FinishObject`를 `StageCellStaticState.hasFinale`(정적 Cell 표식)로 캡처 | 동작 변경 없음. F를 Entity(Top·Trigger)로 바꿀지는 별도 판단. F Cell에 Bottom이 없을 때 P 진입이 막히는 현재 동작이 의도와 맞는지 확인 필요 |
+| D-07 | 유예된 BM/BRM은 라벨로 유예 상태를 드러낸다. remainingTurns 값 유지 정책(7.4)은 그대로다. | 숫자만 표시 | `RemainingTurnDisplay`에 유예 표시. 유예 여부를 Runtime에 전달하는 경로 확인 필요 |
+| D-14 | HUD의 Remaining Turns 항목은 없앤다. 남은 턴은 BM/BRM 라벨로만 보여준다. | `GameHUDController`가 자리표시 문구 표시 | HUD 문구 제거. Scene의 라벨 오브젝트·참조는 Scene 수정 범위이므로 별도 확인 |
+
+D-05는 처음에 'Block의 F 진입 금지, F Cell 색상 조건 적용'으로 기록했으나, 사용자가 같은 날 'F는 칸이 아니라 object이며 trigger로서 CC와 무관하고 Block과 겹쳐도 된다'고 정정했다. 위 표는 정정된 내용이다.
+
+이 결정들은 2026-11-23 기획서 Google Docs v2.1에 반영했다(12.2).
 
 ## 12. Google Docs·문서 Git 동기화 기록
 
@@ -391,3 +405,12 @@ flowchart TD
 3. 추가·갱신한 절: 머리말(기준일·기획서 버전), 2.2 환경, 3.1 G_E·표기, 3.1a 색상 판정, 3.4 예약·CC 재계산, 3.4a Undo·Game Over, 4 컴포넌트, 7절 D 번호 대응, 8.1a 2026-11-10 이후 변경, 8.2 구현 대기, 11a 구성·UI·진행, 11b 미결정 색인.
 4. 코드 대조는 정적 확인이다. Unity 실행·빌드·테스트는 하지 않았다. Git commit·push도 하지 않았다.
 5. `AGENTS.md`의 맥락 문서 링크를 이전 경로 `C:/Users/gue20/Glasses/`에서 프로젝트 루트 상대 경로로 고쳤다(2026-11-23 사용자 요청).
+
+### 12.2. 기획서 v2.1 반영 기록
+
+기록일: 2026-11-23. 사용자 요청으로 확정된 D-01·D-02·D-05·D-07·D-14를 Google Docs 기획서에 반영했다.
+
+1. 문서버전 v2.0 → v2.1, 최종 수정 2026-11-23. 11장 변경 이력에 v2.1 행을 추가했다.
+2. 10장 결정란: D-01·D-02·D-05·D-07·D-14를 채웠다. 나머지 D 항목은 `결정: —` 그대로다. 채운 결정란은 기존 `결정:` 라벨의 굵은 서식을 이어받아 문장 전체가 굵게 표시된다.
+3. 본문: 2.1 Finale 설명(CC 무관 Trigger, B/BR 겹침 허용), 3.1 막힌 입력, 3.5 Finale·Game Over 우선, 4.3 유예 상태 표시, 8.2 구현 대기(막힘 피드백·유예 표시·HUD 항목 삭제)를 갱신했다.
+4. 반영 후 mobilebasic 보기로 다시 읽어 문구를 확인했다. 서식 외 구조·다른 장은 건드리지 않았다.
