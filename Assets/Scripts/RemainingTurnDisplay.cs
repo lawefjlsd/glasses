@@ -16,7 +16,7 @@ public class RemainingTurnDisplay : MonoBehaviour
 
         remainingTurnLabel = labelObject.GetComponent<TextMeshPro>();
         remainingTurnLabel.font = TMP_Settings.defaultFontAsset;
-        remainingTurnLabel.fontSize = 18f;
+        remainingTurnLabel.fontSize = 3f;
         remainingTurnLabel.alignment = TextAlignmentOptions.Center;
         remainingTurnLabel.color = Color.white;
         remainingTurnLabel.sortingOrder = 10;

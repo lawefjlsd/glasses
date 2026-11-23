@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -8,6 +9,12 @@ public class StageBoardTests
     private GameObject blockObject;
     private GameObject backgroundObject;
     private GameObject profileOnlyObject;
+
+    /// <summary>
+    /// 입력: 없음. 출력: 없음. 역할: 열려 있는 Stage Scene의 오브젝트가 Capture에 섞이지 않도록 빈 Scene에서 테스트를 실행합니다.
+    /// </summary>
+    [OneTimeSetUp]
+    public void OpenEmptyScene() => EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
     /// <summary>
     /// 입력: 없음. 출력: 없음. 역할: 논리 보드 Snapshot 테스트에 필요한 동적 Stage 오브젝트를 생성합니다.
