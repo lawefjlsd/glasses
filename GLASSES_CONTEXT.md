@@ -1,8 +1,11 @@
 # Glasses 통합 작업 맥락
 
-기준일: 2026-08-31
+기준일: 2026-11-23 (최초 통합 2026-08-31)
+기획서 기준: `Glasses(가제)_기획서` **v2.0** (최종 수정 2026-11-10)
 
-이 문서는 가장 최근의 [STAGE_WORK_CONTEXT.md](C:/Users/gue20/Glasses/STAGE_WORK_CONTEXT.md), 이 대화의 후속 규칙·설계 논의, 기준일에 직접 읽은 현재 코드를 통합한 재개용 기록이다. 원본 Markdown은 보존한다. 대화 전체의 녹취나 Google Docs 기획서의 대체 문서는 아니다.
+이 문서는 [STAGE_WORK_CONTEXT.md](STAGE_WORK_CONTEXT.md), 이전 대화의 규칙·설계 논의, 기획서 v2.0, 기준일에 직접 읽은 현재 코드를 통합한 재개용 기록이다. 원본 Markdown은 보존한다. 대화 전체의 녹취나 Google Docs 기획서의 대체 문서는 아니다. 규칙이 기획서와 다르면 기획서의 최신판과 최신 사용자 지시를 우선한다.
+
+v2.0 기획서는 2~5장을 확정 규칙, 8장을 개발 현황, 10장을 미결정 사항(D-01~D-14)으로 분리했다. 이 문서에서도 미해결 항목을 해당 D 번호로 함께 표기한다.
 
 ## 1. 다음 작업을 시작할 때
 
@@ -25,11 +28,11 @@
 
 | 항목 | 기준 |
 |---|---|
-| 프로젝트 | `C:\Users\gue20\Glasses` |
-| Unity | `2022.3.55f1` — `ProjectSettings/ProjectVersion.txt`에서 확인 |
+| 프로젝트 | `C:\Users\gue20\Projects\Unity\Glasses\Glasses` (이전 기록의 `C:\Users\gue20\Glasses`에서 이동) |
+| Unity | `2022.3.62f3` — 2026-11-23 `ProjectVersion.txt` 기준. `2022.3.55f1`에서 올린 변경과 패키지 버전 변경(collab-proxy 2.7.1, rider 3.0.36, URP 14.0.12, timeline 1.7.7)은 미커밋 |
 | C# 환경 | Visual Studio 2022 / MSBuild |
-| 사용자 지정 원격 저장소 | `https://github.com/lawefjlsd/glasses.git` — 대화 기록 기준, 이번에 원격 상태를 확인하거나 push하지 않음 |
-| 기획서 이름 | `Glasses(가제)_기획서` — 문서 축약·6장 본문 삭제 결과는 12절 참고 |
+| 원격 저장소 | `origin` = `https://github.com/lawefjlsd/glasses.git`, `main`이 `origin/main` 추적. GitHub Desktop 저장소 목록에 등록됨(2026-11-23 사용자 확인) |
+| 기획서 | [Glasses(가제)_기획서](https://docs.google.com/document/d/1pXi7zkNsTA2auUYzuO4blo_taaf1_9UdjsVqIBEwrpc/edit) v2.0 — 변경 이력은 12절 참고 |
 | 기본 보호 대상 | Scene, Prefab, UI, Story, Sprite, Tilemap, `.meta`, Inspector 참조 |
 | Editor | 사용자 Unity를 임의로 종료하거나 열린 Scene을 저장하지 않음 |
 | Git | 명시적 요청 없이 commit, push, reset, rollback하지 않음 |
@@ -45,13 +48,23 @@
 
 | Zone | Object | 핵심 의미 |
 |---|---|---|
-| Bottom | Ground(G), GroundOneWay(GO), Background(BG), BlockMerged(BM), BlockRevMerged(BRM) | Player가 밟는 표면. Cell당 최대 하나 |
-| Top | Block(B), BlockRev(BR), Player(P), Finale(F) | Solid/Trigger의 점유 성격으로 구분 |
+| Bottom | Ground(G), Ground_Exclusive(G_E), GroundOneWay(GO), Background(BG), BlockMerged(BM), BlockRevMerged(BRM) | Player가 밟는 표면. Cell당 최대 하나 |
+| Top | Block(B), BlockRev(BR), Player(P), Finale(F) | Solid(P·B·BR)/Trigger(F)의 점유 성격으로 구분 |
 | Obstacle | Obstacle(O) | 다른 Stage Object와 겹치지 않는 장애물 |
 
 1. BM/BRM은 고정 Bottom이다. 밀려 이동하는 Block으로 취급하지 않는다.
-2. G·GO·BG·BM/BRM을 같은 칸의 Base/Overlay로 중첩시키지 않는다. BG와 BM/BRM 교체는 Merge·Separation 상태 전환으로 처리한다.
+2. G·G_E·GO·BG·BM/BRM을 같은 칸의 Base/Overlay로 중첩시키지 않는다. BG와 BM/BRM 교체는 Merge·Separation 상태 전환으로 처리한다.
 3. Object를 추가할 수 있으므로 Zone·MovementCapability·OccupancyType을 이용한 구조를 유지한다.
+4. 기획서 표기: `B_[color]`, `BR_[color]`, `G_[color]`, `G_[color]_E`, `GO_[color]_[W/A/S/D]`, `BG_[blockColor]_[acceptedColor]_[turn]`, `BM_[color]`, `BRM_[color]`. BG 첫 색상의 의미와 `turn = 0`(영구) 표기는 미결정이다 [D-04].
+5. 코드에서 G_E는 별도 enum이 아니라 `StageCellStaticState.isExclusive`로 표현한다(`StageBottomGroundKind`는 Empty/Ground/GroundOneWay). Finale는 기획상 Top(Trigger)이지만 구현은 Cell 표식이다 [D-05].
+
+### 3.1a. 색상과 진입 판정
+
+1. 색상은 R·G·B 성분의 켜짐/꺼짐이다: Black 000, Red 100, Green 010, Blue 001, Yellow 110, Magenta 101, Cyan 011, White 111. 기획서 약식 표기는 B/R/G/b/Y/M/C/W다.
+2. 모든 Stage는 CC = Black으로 시작한다. Stage별 시작 CC는 미결정이다 [D-06].
+3. G·GO·BG·BM·BRM 진입: 바닥 색상 성분이 모두 CC에 포함돼야 한다(바닥 ⊆ CC). G_E는 이 판정을 반전한다(바닥 ⊄ CC일 때 진입).
+4. Merge 조건: Block 색상이 BG.acceptedColor의 성분을 모두 포함해야 한다.
+5. BRM은 생성 직후 자기 성분이 CC에서 꺼지므로 P가 올라갈 수 없다. 이후 Add로 성분이 복원되면 진입할 수 있다.
 
 ### 3.2. GO
 
@@ -78,12 +91,22 @@
 5. Player는 Separation보다 먼저 행동한다. Separation 경로의 현재 Player 점유만으로 분리를 Deferred하지 않는다.
 6. Separation Chain은 Player Cell에서 끝난다. Player를 밀지 않으며 Player 너머 Block도 그 Separation Chain에 포함하지 않는다. Player 자신의 별도 Push는 구분한다.
 7. Player 이탈용 `requiresActorVacate`, `actorVacateCell`, `isPlayerException` 등의 저장 필드나 Bool에 의존하지 않는다. 기존 enum, Entity, `actorMovement`, `chainMovements`, 원본 복원 정보를 사용한다.
-8. 사용자 요구의 '유효 입력'과 현재 코드의 이동 제한 처리 사이에는 7절의 미해결 의미 차이가 남아 있다. 이 문서를 근거로 벽 통과·제자리 Turn·강제 이동을 추가하지 않는다.
+8. 사용자 요구의 '유효 입력'과 현재 코드의 이동 제한 처리 사이에는 7절의 미해결 의미 차이가 남아 있다 [D-01]. 이 문서를 근거로 벽 통과·제자리 Turn·강제 이동을 추가하지 않는다.
+9. 예약(Virtual Obstacle): 이번 Turn에 실행될 Separation이 쓰는 Cell과 오브젝트를 예약한다. 별도 오브젝트가 아니다. P와 다른 Block은 예약 Cell에 새로 들어갈 수 없지만, P가 원래 있던 Cell에서 나가는 것은 막지 않는다.
+10. Separation 뒤 CC는 사라진 이벤트를 빼고 남은 이벤트를 Black부터 다시 적용한다. 가려졌던 이전 효과가 다시 나타날 수 있다. 분리 연출 중에는 입력을 잠근다.
+11. Stage 시작 시 Merge 검사를 한 번 하며 Turn을 소비하지 않는다.
+
+### 3.4a. Undo·Restart·Finale·Game Over
+
+1. Undo: 직전 이동 전 상태(P·CC, 오브젝트 위치·활성·원본 참조, Timer, 분리 정보, Merge 효과·batch·순서)를 그대로 복원한다. Game Over 직후에도 Undo할 수 있다.
+2. Restart: 현재 Stage를 처음부터 다시 시작한다.
+3. Finale: P가 F에 도달하면 Stage Clear다.
+4. Game Over: 최종 논리 상태에서 Solid Top이 한 Cell에 둘 이상이면 Game Over다. 연출 중 겹침은 판정에 쓰지 않는다. 대표 배치 예시는 미결정이다 [D-03].
 
 ### 3.5. 동시 Separation에 대한 사용자 제약
 
 1. 같은 Turn에 due인 두 BM의 경로 충돌을 생성 순서, BM/BRM 종류, Entity 나열 순서로 승패 처리하지 않는다.
-2. 플레이어가 공간 관계로 예측할 수 있어야 하며, 새 우선 속성이나 숨은 오브젝트·계획 데이터를 추가하지 않는다.
+2. 플레이어가 공간 관계로 예측할 수 있어야 하며, 새 우선 속성이나 숨은 오브젝트·계획 데이터를 추가하지 않는다. 분리 방향 화면 표시는 미결정이다 [D-08].
 3. 한 Plan의 Chain만 밀고 BM은 남기는 부분 실행을 허용하지 않는다.
 4. 구체적으로 '어디까지 경로 겹침으로 볼 것인가'는 현재 구현과 이 대화의 마지막 제안이 다르다. 6~7절을 함께 읽어야 한다.
 
@@ -102,6 +125,12 @@
 | `StageRuntimeCommitter` | 논리 결과를 Runtime Object·Component에 반영하고 Animation 실행 |
 | `MovementHelper` | 이동 애니메이션 |
 | `UndoManager` | 전체 BoardSnapshot 보관·복원 |
+| `Block` / `BlockMerged` | `Block.colorEffect`(Add/Remove)로 B/BR 통합 / 원본 참조·Timer·색상 효과·순서 보관 |
+| `GroundOneWay` | GO의 색상·이탈 방향 데이터. 판정은 컴포넌트 위치 기준이며 Collider·Layer를 쓰지 않음 |
+| `GameManager` | CC·Game Over·Restart 연결 |
+| `GameHUDController` / `RemainingTurnDisplay` | CC·Timer·투명도·Restart·Undo·Clear·Game Over 표시 |
+
+`GridQueryManager`는 기존 씬 호환용 빈 컴포넌트이며 역할이 없다.
 
 주요 기존 enum은 `StageEntityKind`, `StageZone`, `MovementCapability`, `OccupancyType`, `MovementIntent`, `PlayerActionOutcome`, `PlayerActionFailureReason`이다. `MovementIntent.SeparationRestore`를 모든 Chain 이동의 의미로 임의 확장하지 않는다. 밀리는 Chain Block의 실제 이동은 Push다.
 
@@ -134,7 +163,7 @@
 
 ## 6. 현재 구현된 동시 Separation 충돌 모델
 
-근거: [SeparationManager.cs](C:/Users/gue20/Glasses/Assets/Scripts/SeparationManager.cs)의 `CreateSchedule()`, `DeferConflictingPaths()`, `PathsConflict()`, `SegmentsIntersect()`.
+근거: [SeparationManager.cs](Assets/Scripts/SeparationManager.cs)의 `CreateSchedule()`, `DeferConflictingPaths()`, `PathsConflict()`, `SegmentsIntersect()`.
 
 1. 모든 후보를 예약·이동을 적용하지 않은 공통 Snapshot에서 생성한다.
 2. Entity ID 정렬은 출력 순서 고정용이다. 앞 Plan이 예약을 선점하는 의미는 없다.
@@ -148,9 +177,11 @@
 
 ## 7. 대화의 마지막 제안과 현재 구현의 차이
 
-이 절은 **미해결 차이의 기록**이다. 자동으로 수정할 항목이나 사용자 확정 규칙으로 취급하지 않는다.
+이 절은 **미해결 차이의 기록**이다. 자동으로 수정할 항목이나 사용자 확정 규칙으로 취급하지 않는다. 기획서 v2.0에서 7.1은 D-02, 7.3은 D-01, 7.4는 D-07, 7.5의 분리 방향 표시는 D-08로 정리되었고, 2026-11-23 기준 모두 결정란이 비어 있다.
 
-### 7.1. 최종 점유 중심 제안과 경로 겹침 중심 구현
+### 7.1. 최종 점유 중심 제안과 경로 겹침 중심 구현 [D-02]
+
+기획서 선택지: 현행 유지 / 최종 점유가 양립하면 함께 실행(미구현).
 
 마지막 답변의 추천 문장은 다음과 같았다.
 
@@ -201,14 +232,18 @@
 [MA>]  [ x ]  [MB^]
 ```
 
-### 7.3. 유효 입력의 의미
+### 7.3. 유효 입력의 의미 [D-01]
+
+기획서 현재 기술: 막힌 방향 입력은 Turn을 소비하지 않고 아무 일도 일어나지 않으며 Stuck 자동 처리는 없다. 선택지: 현행 유지 + 막힘 피드백(흔들림·효과음) / Turn 소비 처리.
 
 1. 사용자 의도는 유효 입력에서 Player 이동과 Turn 진행을 보장하고, Player의 현재 경로 점유 때문에 Separation을 유예하지 않는 것이다.
 2. 현재 `PlayerActionResolver`는 Obstacle, GO 방향, 색상, Bottom 부재, 목적지 예약 등에 `Blocked`를 반환하고, Controller는 `Move`가 아니면 Resolver/Commit 전에 종료한다. 관련 테스트도 남아 있다.
 3. '방향값이 유효한 WASD'와 '게임 규칙상 실행 가능한 행동'이 같은 뜻인지에 대한 완전한 합의는 이 대화만으로 확인되지 않는다.
 4. 이동 불가능 방향의 새 상태·강제 이동·벽 통과·제자리 Turn을 문서 정리만으로 승인된 것으로 보지 않는다. 다음 구현 요청에서 이 경계를 먼저 확인한다.
 
-### 7.4. 유예 Timer의 실제 동작
+### 7.4. 유예 Timer의 실제 동작 [D-07]
+
+기획서 선택지: 유예 상태 아이콘 표시. HUD의 Remaining Turns 항목은 별도 미결정이다 [D-14] — [GameHUDController.cs](Assets/Scripts/GameHUDController.cs)는 현재 `"Remaining Turns: see merged blocks"` 자리표시 문구만 표시한다.
 
 1. 현재 `UpdateRemainingTurns()`는 Deferred된 BM/BRM의 값을 그대로 유지한다.
 2. 따라서 입력 전 값이 0이면 0으로 남지만, targetTurn 기준 due인 입력 전 값이 1인 Plan은 유예되면 1로 남을 수 있다. '유예되면 항상 화면상 0'이라고 기록하지 않는다.
@@ -217,7 +252,7 @@
 
 ### 7.5. 화면 예측성과 실제 실행 순서
 
-1. 현재 분리 방향은 `originBlockCell`과 BM Cell의 관계를 사용한다. 이 기존 정보가 화면에서 드러나지 않으면 '현재 보드만 보고 예측'한다는 UX 목표를 완전히 만족하는지는 확인이 필요하다. 새 방향·우선 속성을 만든다는 뜻은 아니다.
+1. [D-08] 현재 분리 방향은 `originBlockCell`과 BM Cell의 관계를 사용한다. 이 기존 정보가 화면에서 드러나지 않으면 '현재 보드만 보고 예측'한다는 UX 목표를 완전히 만족하는지는 확인이 필요하다. 새 방향·우선 속성을 만든다는 뜻은 아니다.
 2. 논리 Turn 순서와 Runtime 연출 순서를 구분한다. 현재 Committer는 이동 Animation들을 시작하고 완료를 기다린 뒤 `ApplyFinalState()`로 최종 Transform·활성·Component 상태를 반영한다.
 3. `ValidateBoard()`는 Solid Top 중복을 GameOver 후보로 표시할 수 있다. `isValid`만으로 '분리 사이 점유 충돌이 없음'을 판정하지 않는다.
 
@@ -236,13 +271,20 @@
 | 환경 | 별도 임시 Unity 프로젝트 |
 | 실제 Stage Play Mode | 미실행 |
 
+### 8.1a. 2026-11-10 이후 변경 기록
+
+1. 기획서 v2.0 8.3 기록: Board 테스트의 Ground+Obstacle 입력을 Bottom 없는 Obstacle Cell로, 저장 데이터 테스트의 기대값을 `MainMap`으로 수정했다. **재실행 필요**로 기록되어 있다.
+2. 2026-11-23 정적 확인: [StageBoardTests.cs](Assets/Tests/EditMode/StageBoardTests.cs)의 `PlayerActionResolver_RejectsObstacleAndMissingBottom`은 `new StageCellStaticState { hasObstacle = true }`로 Cell을 교체하며, [ProgressSaveDataTests.cs](Assets/Tests/EditMode/ProgressSaveDataTests.cs)는 `mainMapSceneName == "MainMap"`을 기대한다. 두 테스트 모두 이번에 실행하지 않았다.
+3. 2026-11-23 미커밋 코드 변경: `RemainingTurnDisplay` 라벨 `fontSize` 18 → 3, `StageBoardTests`에 열린 Stage Scene 오브젝트가 Capture에 섞이지 않도록 `[OneTimeSetUp]`으로 빈 Scene을 여는 코드 추가. 누가 어떤 목적으로 변경했는지는 확인하지 않았다.
+
 ### 8.2. 미해결·미검증 항목
 
-1. `PlayerActionResolver_RejectsObstacleAndMissingBottom`의 입력이 Ground+Obstacle 중첩인데 기대값은 `Obstacle`인 테스트 불일치가 원본 문서에 기록되어 있다. 입력 구성 또는 기대값 의미를 검토해야 하며 게임 규칙부터 바꾸지 않는다.
+1. `PlayerActionResolver_RejectsObstacleAndMissingBottom`의 입력 불일치(Ground+Obstacle 중첩인데 기대값 `Obstacle`)는 8.1a대로 입력을 고쳤다. 수정 후 통과 여부는 미검증이다.
 2. 실제 사용자 맵의 입력, 분리 애니메이션, 활성 전환, CC·Timer 표시, Undo 복원은 Play Mode 확인이 필요하다.
 3. 일부 Scene과 `ProjectSettings/TagManager.asset`의 공백 오류가 원본 문서에 기록되어 있다. 이번 문서 작업에서 이를 수정하거나 전체 검사를 다시 실행하지 않는다.
-4. 7절의 경로 충돌 범위, 유효 입력 의미, Deferred Timer 표시 차이는 추가 구현 전 확인 대상이다.
+4. 7절의 경로 충돌 범위 [D-02], 유효 입력 의미 [D-01], Deferred Timer 표시 [D-07] 차이는 추가 구현 전 확인 대상이다.
 5. 코드에 테스트가 있다는 사실과 그 테스트가 현재 환경에서 통과했다는 사실을 구분한다.
+6. 기획서 v2.0 8.2 구현 대기: Map_2-6과 3·4챕터 맵 제작, 1챕터 후반·후속 Stage 검증, GO·BR/BRM Sprite·Prefab·맵 배치 확인, MainMap 입구 배치(현재 1-1~1-6 버튼만), 돌아보기 목록, 컷씬 데이터 등록.
 
 ### 8.3. 현재 존재하는 주요 회귀 테스트
 
@@ -284,6 +326,48 @@ flowchart TD
     I --> J[Turn 완료 · Undo 기록 확정]
 ```
 
+## 11a. 구성·UI·진행 (기획서 v2.0 1·6·9장 요약)
+
+### 11a.1. Chapter / Stage
+
+1. 4개 Chapter(13·6·10·10 Stage) + EX Stage. 각 Chapter 마지막이 Finale이며 4-10이 최종 Stage다.
+2. Build Settings: TitleScene, MainMap, `Chapter1/Map_1-1`~`Map_1-13`, `Map_2-1`~`Map_2-5`. Map_2-6과 3·4챕터 맵은 없다.
+3. 1챕터 제목: 1-1 조작·Merge·색상 / 1-2 Chain Push / 1-3 Ground Exclusive / 1-4 Background 색상 조건 / 1-5 Merge와 Separation / 1-6 Separation No Diff. / 1-7 Game Over / 1-8 Separation 응용 / 1-9 It is not complicated / 1-10 RGB = White / 1-11 Ouch! / 1-12 Separation No Diff. 응용 / 1-13 미정.
+4. 2챕터 제목: 2-1 Tutorial: GO / 2-2 GO + Separation No Diff / 2-3 GO maze / 2-4 Cowardly / 2-5 미정 / 2-6 미정(맵 미제작). 3·4챕터와 EX는 미정 [D-09][D-10].
+5. 새 Stage는 기획서 6.1 양식(Stage/맵 파일, 제목, 학습 목표, 새 오브젝트, 의도한 해법, 막히기 쉬운 지점)으로 추가한다. v1.5에서 삭제한 6장 본문은 자동 복구하지 않는다.
+
+### 11a.2. 화면과 진행 규칙
+
+1. 메인 맵은 4개 Chapter의 Hub다. 진입은 시작 화면의 게임 시작 또는 환경설정의 메인 맵으로 가기뿐이며, 클리어 과정에서 메인 맵으로 자동 복귀하지 않는다.
+2. 시작 화면: 게임 시작 → 환경설정 → 종료. `isGameCompleted` 이후 돌아보기가 추가된다. 게임 시작은 저장된 메인 맵과 P 위치를 불러온다.
+3. 메인 맵: 처음엔 Chapter 1만 해금. 잠긴 곳은 진입 불가, 완료한 Stage는 재진입 가능. 기획은 WASD 입구 접촉 진입, 현재는 Stage 버튼(1-1~1-6만 배치) [D-11].
+4. 클리어 진행: 일반 Stage 첫 클리어는 연결 컷씬 1회 → 다음 Stage. Chapter Finale 첫 클리어는 다음 Chapter 해금·저장 → 전환 컷씬 → 다음 Chapter 첫 Stage. 4-10 첫 클리어는 Ending·Credits → 시작 화면. 재클리어는 컷씬·진행도 변경 없이 진행. 다음 맵이 없으면 시작 화면으로 돌아간다.
+5. 환경설정: 시작 화면 버튼 또는 모든 화면에서 ESC. 열린 동안 P 입력 차단. Master 음량 하나 [D-13]. 메인 맵으로 가기는 확인 없이 미완료 Stage와 Undo 기록을 버린다.
+6. 컷씬: 이름은 `Scene [Chapter]-[Stage]`, 내부 ID는 `scene_2_6` 형식 권장. 첫 클리어 때 해금·저장 후 재생. 돌아보기는 해금된 컷씬만 표시하며 진행도를 바꾸지 않는다. 등록 컷씬 없음, 목록 미구현 [D-12].
+7. 저장 데이터(`SaveData`): `clearedStageIds`, `unlockedChapterIds`, `currentProgressStageId`, `mainMapSceneName`, `mainMapPlayerPosition`, `masterVolume`, `unlockedCutsceneIds`, `isGameCompleted`. 미완료 Stage 위치·Undo는 저장하지 않는다.
+8. UI 구조: `UIManager`·`SceneUIRouter`(씬별 UI·입력 잠금), Title/MainMap/Settings/Review/Cutscene `UIController`, `SceneFlowManager`(전환·로드·클리어), `ProgressManager`(`ProgressCatalog` 기반 해금·다음 Stage), `SaveManager`·`AudioManager`, `MainMapPlayerController`·`MainMapEntrance`. 진행 서비스 대부분은 [ProgressSystem.cs](Assets/Scripts/ProgressSystem.cs) 한 파일에 있다. 버튼은 씬 이름 대신 stageId 등 의미 단위 명령을 전달한다. 독립 `CutsceneManager`는 설계안이다.
+
+## 11b. 기획서 v2.0 미결정 사항 색인
+
+2026-11-23 기준 모든 항목의 결정란은 비어 있다. 결정되면 기획서 본문과 이 문서를 함께 갱신한다.
+
+| ID | 항목 | 현재 상태 | 선택지 |
+|---|---|---|---|
+| D-01 | 유효 입력의 정의 | 막힌 방향 입력은 Turn 미소비, Stuck 자동 처리 없음 | 현행 + 막힘 피드백 / Turn 소비 |
+| D-02 | 동시 Separation 충돌 기준 | 경로 공유·교차 시 두 Plan 모두 유예 | 현행 / 최종 점유 양립 시 함께 실행(미구현) |
+| D-03 | Game Over 발생 상황 | Solid Top 중복 시 Game Over, Undo로 해제 | 대표 배치 예시 추가 |
+| D-04 | BG 표기 첫 색상 의미 | `blockColor` 이름 불분명, turn 0(영구) 미표기 | `BG_[entryColor]_[acceptedColor]_[turn]`, turn 0 = ∞ |
+| D-05 | Finale 분류 | 기획 Top(Trigger), 구현 Cell 표식 | Block이 F 위에 올라갈 수 있는지 함께 결정 |
+| D-06 | Stage 시작 CC | 모두 Black | 현행 / Stage 데이터에 시작 CC |
+| D-07 | 유예 Timer 표시 | 기존 값(0 또는 1) 유지 | 유예 상태 아이콘 |
+| D-08 | 분리 방향 표시 | 복원 방향이 화면에 안 보임 | BM/BRM에 복원 방향 화살표 |
+| D-09 | 3·4챕터 신규 오브젝트 | Block Sep·Robot·Eat Block TBD | Zone·이동·점유·색상 한 줄 정의 후 채택 |
+| D-10 | EX Stage | 해금 조건·전용 규칙 TBD | 예: Chapter 전체 클리어 시 해금 |
+| D-11 | 메인 맵 진입 방식 | Stage 버튼(1-1~1-6) | WASD 입구 방식 + Chapter별 입구 배치도 |
+| D-12 | 컷씬 콘텐츠 | 등록 컷씬 없음, 돌아보기 목록 미구현 | `StoryData` 재사용 여부, Stage별 컷씬 ID 목록 |
+| D-13 | 오디오 | BGM·SFX 목록·재생 시점 미정 | 화면·이벤트별 사운드 목록 |
+| D-14 | HUD Remaining Turns | 자리표시 문구만 표시 | 삭제 / 다음 분리까지 남은 턴 표시 |
+
 ## 12. Google Docs·문서 Git 동기화 기록
 
 기록일: 2026-08-31. 사용자가 Google Docs 편집과 문서 파일만의 로컬 Git 반영을 요청했으며, Unity 상태 변경과 push를 금지했다.
@@ -297,3 +381,13 @@ flowchart TD
 7. Google Docs 재조회로 제목·소제목·서식·탭·이미지 보존과 6장 본문 부재를 확인했다. 파일 기반 사전 읽기 도구가 Windows 절대 경로를 지원하지 않아 직접 연결 도구로 구조·서식을 확인했다. PDF 내보내기는 성공했으나 반환된 원격 파일을 로컬에서 열 수 없어 렌더링 시각 검사는 미완료다.
 8. Git 반영 대상은 루트의 `AGENTS.md`, `GLASSES_CONTEXT.md`, `STAGE_WORK_CONTEXT.md`뿐이다. 원본 Stage 작업 요약은 내용 변경 없이 기록에 포함한다. Unity 파일은 스테이징·커밋 대상에서 제외하며 `reset`, `checkout`, `clean`, `push`는 사용하지 않는다.
 9. 이번에는 Unity 실행·빌드·테스트·에셋 가져오기를 하지 않는다. Stage 코드의 현재 동작은 읽기 전용으로 대조했으며, 보호 디렉터리의 작업 전후 내용 해시와 Git staged 파일 목록으로 문서 외 변경 여부를 확인한다.
+
+### 12.1. 기획서 v1.6·v2.0 반영 기록
+
+기록일: 2026-11-23. 사용자가 로컬 맥락 문서를 기획서 v2.0 기준으로 갱신하도록 요청했다.
+
+1. 기획서 변경 이력: v1.6(2026-11-10) 시작 CC Black 고정, Stage 구성 13·6·10·10, ESC·메인 맵·돌아보기 동작을 코드 기준으로 갱신. v2.0(2026-11-10) 규칙/현황/미결정 분리, 오브젝트·색상·진행 표 정리, Stage 명세 양식·미결정 표·변경 이력 추가.
+2. 이번 갱신은 기획서를 내장 브라우저로 읽기만 했고 기획서는 수정하지 않았다. 반영 범위는 이 파일(`GLASSES_CONTEXT.md`)과 `AGENTS.md`의 경로 한 줄이며 `STAGE_WORK_CONTEXT.md`와 Unity 파일은 수정하지 않았다.
+3. 추가·갱신한 절: 머리말(기준일·기획서 버전), 2.2 환경, 3.1 G_E·표기, 3.1a 색상 판정, 3.4 예약·CC 재계산, 3.4a Undo·Game Over, 4 컴포넌트, 7절 D 번호 대응, 8.1a 2026-11-10 이후 변경, 8.2 구현 대기, 11a 구성·UI·진행, 11b 미결정 색인.
+4. 코드 대조는 정적 확인이다. Unity 실행·빌드·테스트는 하지 않았다. Git commit·push도 하지 않았다.
+5. `AGENTS.md`의 맥락 문서 링크를 이전 경로 `C:/Users/gue20/Glasses/`에서 프로젝트 루트 상대 경로로 고쳤다(2026-11-23 사용자 요청).
